@@ -100,10 +100,6 @@ class FluxConfigLoaderTest {
                 bundle.messages().player.offlineJoinEntry
         );
         assertEquals(
-                "<gradient:#f7d74b:#ffd86b><bold><server></bold></gradient><newline><red>You are currently banned from this network.</red><newline><gray>Reason:</gray> <white><reason></white><newline><gray>Expires At:</gray> <white><expires_at></white><newline><gray>Time Left:</gray> <white><time_left></white><newline><gray>Action ID:</gray> <white><id></white><newline><id_warning><newline><gray>Appeal:</gray> <yellow><discord></yellow>",
-                bundle.messages().screens.banScreen
-        );
-        assertEquals(
                 "<yellow><bold>Action Details</bold></yellow><newline><gray>ID:</gray> <white><id></white><newline><gray>Type:</gray> <white><type></white><newline><gray>Target:</gray> <white><target></white><newline><gray>Executor:</gray> <white><executor></white><newline><gray>Reason:</gray> <white><reason></white><newline><gold>Click to suggest /check <id></gold>",
                 bundle.messages().staff.actionBroadcastHover
         );

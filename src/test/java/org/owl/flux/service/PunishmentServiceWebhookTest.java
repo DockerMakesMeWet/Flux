@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -91,7 +92,7 @@ class PunishmentServiceWebhookTest {
         when(actionIdService.nextUniqueId()).thenReturn("ABC123");
         MessageService messageService = mock(MessageService.class);
         Component banComponent = Component.text("ban-screen");
-        when(messageService.banScreen("ABC123", "Rule violation", any(Instant.class))).thenReturn(banComponent);
+        when(messageService.banScreen(eq("ABC123"), eq("Rule violation"), any(Instant.class))).thenReturn(banComponent);
         DiscordWebhookService discordWebhookService = mock(DiscordWebhookService.class);
         CommandSource executor = mock(CommandSource.class);
         Player onlineTarget = mock(Player.class);

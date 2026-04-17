@@ -1,97 +1,13 @@
-# =============================================================
-# Flux Punishment Templates (Default)
-# =============================================================
-# Policy mapping:
-#   This default catalog is organized by template key (for commands) and label
-#   (human-readable display) with explicit tier durations under each template.
-#
-# Duration format (tier.duration possible values):
-#   - timed values: number + unit (examples: 30m, 1h, 3d, 14d, 60d)
-#     units: m (minutes), h (hours), d (days)
-#   - permanent value: permanent
-#
-# Escalation behavior:
-#   - Tier 1 = first use of that template for a player
-#   - Tier 2 = second use, Tier 3 = third use, etc.
-#   - If later policy tiers are N/A, leave them out.
-#   - Flux always reuses the last configured real tier after max tier is reached.
-#
-# Template field possible values:
-#   template key: lowercase slug (a-z, 0-9, hyphen), example: spam-chat
-#   label: display name string, example: "Spam Chat"
-#   category: group name string, example: "Chat & Communication"
-#   permission: permission node string, example: "flux.template.spam-chat"
-#   type:
-#   - WARN
-#   - MUTE
-#   - BAN
-#   notes: optional free-text guidance string (can be empty/omitted)
-#   tiers: ordered list of at least one tier item
-#   tier.reason: non-empty explanation shown to users/staff
-
 templates:
-  # Schema reminder (applies to every template below):
-  #   <template-key>:
-  #     label: "<display name>"
-  #     category: "<group>"
-  #     permission: "flux.template.<template-key>"
-  #     type: "WARN|MUTE|BAN"
-  #     notes: "<optional guidance>"
-  #     tiers:
-  #       - duration: "<30m|1h|3d|14d|30d|permanent>"
-  #         reason: "<shown in punishment reason>"
-  #
-  # Tier lists below are intentionally explicit so policy durations are easy to audit.
-  #
-  # Quick policy index (template key => tier durations):
-  #   general => permanent
-  #   chat-conduct => permanent
-  #   spawn-camping => permanent
-  #   language => permanent
-  #
-  #   spam-chat => 1h -> 6h -> 1d -> 7d
-  #   spam-command => 1h -> 6h -> 1d -> 7d
-  #   toxicity-light => 1h -> 6h -> 1d -> 7d
-  #   toxicity-severe => 1d -> 3d -> 7d -> 30d
-  #   hate-speech => 3d -> 7d -> 30d -> permanent
-  #   nsfw-chat => 3h -> 1d -> 7d (later policy tiers N/A)
-  #   advertising-light => 1d -> 7d -> permanent (later policy tiers N/A)
-  #   advertising-malicious => 30d -> permanent (later policy tiers N/A)
-  #   report-abuse => 1h -> 1d -> 3d (later policy tiers N/A)
-  #   begging => 30m -> 3h -> 1d (later policy tiers N/A)
-  #   political-dispute => 1h -> 1d -> 3d (later policy tiers N/A)
-  #
-  #   cheat-combat => 7d -> 30d -> permanent
-  #   cheat-movement => 7d -> 30d -> permanent
-  #   cheat-render => 3d -> 14d -> 60d
-  #   cheat-autoclicker => 3d -> 7d -> 30d
-  #   cheat-misc => 1d -> 3d -> 14d
-  #
-  #   exploit-server => 3d -> 14d -> permanent
-  #   grief-server => 30d -> permanent
-  #   inappropriate-builds => 1d -> 7d -> 30d
-  #   inappropriate-skin => 1d -> 7d -> permanent
-  #   refusing-ss => 30d -> permanent
-  #   alt-farming => 14d -> permanent
-  #
-  #   duping-economy => permanent
-  #   server-harm => permanent
-  #   safety-threat => permanent
-  #   botting => permanent
-  #   punishment-evasion => permanent
-
-  # -----------------------------------------------------------
-  # Warnings (Helper+)
-  # -----------------------------------------------------------
   general:
     label: "General"
     category: "Warnings"
     permission: "flux.template.general"
     type: "WARN"
-    notes: "General, generic rule breaking."
+    notes: "Generic rule break."
     tiers:
       - duration: "permanent"
-        reason: "General, generic rule breaking"
+        reason: "You have been warned for a general rule violation. Please review our server rules to ensure you are playing fairly."
 
   chat-conduct:
     label: "Chat Conduct"
@@ -101,7 +17,7 @@ templates:
     notes: "First instance of rudeness/arguing."
     tiers:
       - duration: "permanent"
-        reason: "First instance of rude or argumentative chat conduct"
+        reason: "Please be respectful in chat! We want to keep the server friendly and welcoming for everyone. Avoid arguing or being rude."
 
   spawn-camping:
     label: "Spawn Camping"
@@ -111,21 +27,18 @@ templates:
     notes: "Repeatedly killing new players at spawn/warps."
     tiers:
       - duration: "permanent"
-        reason: "Spawn camping and repeatedly targeting new players"
+        reason: "Spawn camping is not allowed. Please allow a fair chance for players who have just respawned or joined the server."
 
   language:
     label: "Language"
     category: "Warnings"
     permission: "flux.template.language"
     type: "WARN"
-    notes: "Reminder to use English/clean chat."
+    notes: "Reminding players to speak English/clean chat."
     tiers:
       - duration: "permanent"
-        reason: "Please use English and keep chat clean"
+        reason: "Please keep your chat messages clean and appropriate, and converse primarily in English so our staff can moderate effectively."
 
-  # -----------------------------------------------------------
-  # Chat & Communication (Mutes) (Helper+)
-  # -----------------------------------------------------------
   spam-chat:
     label: "Spam Chat"
     category: "Chat & Communication"
@@ -133,13 +46,13 @@ templates:
     type: "MUTE"
     tiers:
       - duration: "1h"
-        reason: "Chat spam"
+        reason: "Spamming"
       - duration: "6h"
-        reason: "Repeated chat spam"
+        reason: "Spamming"
       - duration: "1d"
-        reason: "Chronic chat spam"
+        reason: "Spamming"
       - duration: "7d"
-        reason: "Severe repeated chat spam"
+        reason: "Spamming"
 
   spam-command:
     label: "Spam Command"
@@ -148,13 +61,13 @@ templates:
     type: "MUTE"
     tiers:
       - duration: "1h"
-        reason: "Command spam"
+        reason: "Command Spam"
       - duration: "6h"
-        reason: "Repeated command spam"
+        reason: "Command Spam"
       - duration: "1d"
-        reason: "Chronic command spam"
+        reason: "Command Spam"
       - duration: "7d"
-        reason: "Severe repeated command spam"
+        reason: "Command Spam"
 
   toxicity-light:
     label: "Toxicity Light"
@@ -163,13 +76,13 @@ templates:
     type: "MUTE"
     tiers:
       - duration: "1h"
-        reason: "Light toxicity"
+        reason: "Light Toxicity"
       - duration: "6h"
-        reason: "Repeated light toxicity"
+        reason: "Light Toxicity"
       - duration: "1d"
-        reason: "Escalating toxic behavior"
+        reason: "Light Toxicity"
       - duration: "7d"
-        reason: "Severe repeated toxicity"
+        reason: "Light Toxicity"
 
   toxicity-severe:
     label: "Toxicity Severe"
@@ -178,13 +91,13 @@ templates:
     type: "MUTE"
     tiers:
       - duration: "1d"
-        reason: "Severe toxicity"
+        reason: "Severe Toxicity"
       - duration: "3d"
-        reason: "Repeated severe toxicity"
+        reason: "Severe Toxicity"
       - duration: "7d"
-        reason: "Escalated severe toxicity"
+        reason: "Severe Toxicity"
       - duration: "30d"
-        reason: "Extreme repeated severe toxicity"
+        reason: "Severe Toxicity"
 
   hate-speech:
     label: "Hate Speech"
@@ -193,53 +106,50 @@ templates:
     type: "MUTE"
     tiers:
       - duration: "3d"
-        reason: "Hate speech or slurs"
+        reason: "Hate Speech"
       - duration: "7d"
-        reason: "Repeated hate speech or slurs"
+        reason: "Hate Speech"
       - duration: "30d"
-        reason: "Chronic hate speech or slurs"
+        reason: "Hate Speech"
       - duration: "permanent"
-        reason: "Zero tolerance repeat hate speech"
+        reason: "Hate Speech"
 
   nsfw-chat:
     label: "NSFW Chat"
     category: "Chat & Communication"
     permission: "flux.template.nsfw-chat"
     type: "MUTE"
-    notes: "N/A tiers are intentionally omitted."
     tiers:
       - duration: "3h"
-        reason: "NSFW content in chat"
+        reason: "NSFW Chat"
       - duration: "1d"
-        reason: "Repeated NSFW content in chat"
+        reason: "NSFW Chat"
       - duration: "7d"
-        reason: "Chronic NSFW content in chat"
+        reason: "NSFW Chat"
 
   advertising-light:
     label: "Advertising Light"
     category: "Chat & Communication"
     permission: "flux.template.advertising-light"
     type: "MUTE"
-    notes: "N/A tiers are intentionally omitted."
     tiers:
       - duration: "1d"
-        reason: "Light advertising"
+        reason: "Light Advertising"
       - duration: "7d"
-        reason: "Repeated light advertising"
+        reason: "Light Advertising"
       - duration: "permanent"
-        reason: "Persistent advertising behavior"
+        reason: "Light Advertising"
 
   advertising-malicious:
     label: "Advertising Malicious"
     category: "Chat & Communication"
     permission: "flux.template.advertising-malicious"
     type: "MUTE"
-    notes: "Use IP punishment context when action is IP-related."
     tiers:
       - duration: "30d"
-        reason: "Malicious advertising"
+        reason: "Malicious Advertising"
       - duration: "permanent"
-        reason: "Repeated malicious advertising"
+        reason: "Malicious Advertising"
 
   report-abuse:
     label: "Report Abuse"
@@ -248,11 +158,11 @@ templates:
     type: "MUTE"
     tiers:
       - duration: "1h"
-        reason: "Report abuse or false reports"
+        reason: "Report Abuse"
       - duration: "1d"
-        reason: "Repeated report abuse or false reports"
+        reason: "Report Abuse"
       - duration: "3d"
-        reason: "Chronic report abuse or false reports"
+        reason: "Report Abuse"
 
   begging:
     label: "Begging"
@@ -261,11 +171,11 @@ templates:
     type: "MUTE"
     tiers:
       - duration: "30m"
-        reason: "Begging in chat"
+        reason: "Begging"
       - duration: "3h"
-        reason: "Repeated begging in chat"
+        reason: "Begging"
       - duration: "1d"
-        reason: "Chronic begging in chat"
+        reason: "Begging"
 
   political-dispute:
     label: "Political Dispute"
@@ -274,15 +184,12 @@ templates:
     type: "MUTE"
     tiers:
       - duration: "1h"
-        reason: "Political or controversial disputes in chat"
+        reason: "Political/Dispute"
       - duration: "1d"
-        reason: "Repeated political or controversial disputes"
+        reason: "Political/Dispute"
       - duration: "3d"
-        reason: "Chronic political or controversial disputes"
+        reason: "Political/Dispute"
 
-  # -----------------------------------------------------------
-  # Client & Unfair Advantage (Bans) (Moderator+)
-  # -----------------------------------------------------------
   cheat-combat:
     label: "Cheat Combat"
     category: "Client & Unfair Advantage"
@@ -290,11 +197,11 @@ templates:
     type: "BAN"
     tiers:
       - duration: "7d"
-        reason: "Combat cheating"
+        reason: "Combat Cheats (KillAura, Reach, AntiKB)"
       - duration: "30d"
-        reason: "Repeated combat cheating"
+        reason: "Combat Cheats (KillAura, Reach, AntiKB)"
       - duration: "permanent"
-        reason: "Chronic combat cheating"
+        reason: "Combat Cheats (KillAura, Reach, AntiKB)"
 
   cheat-movement:
     label: "Cheat Movement"
@@ -303,11 +210,11 @@ templates:
     type: "BAN"
     tiers:
       - duration: "7d"
-        reason: "Movement cheating"
+        reason: "Movement Cheats (Fly, Speed, NoSlow)"
       - duration: "30d"
-        reason: "Repeated movement cheating"
+        reason: "Movement Cheats (Fly, Speed, NoSlow)"
       - duration: "permanent"
-        reason: "Chronic movement cheating"
+        reason: "Movement Cheats (Fly, Speed, NoSlow)"
 
   cheat-render:
     label: "Cheat Render"
@@ -316,11 +223,11 @@ templates:
     type: "BAN"
     tiers:
       - duration: "3d"
-        reason: "Render cheating (X-Ray/ESP/etc.)"
+        reason: "Visual / Render (X-Ray, ESP, Tracers)"
       - duration: "14d"
-        reason: "Repeated render cheating"
+        reason: "Visual / Render (X-Ray, ESP, Tracers)"
       - duration: "60d"
-        reason: "Chronic render cheating"
+        reason: "Visual / Render (X-Ray, ESP, Tracers)"
 
   cheat-autoclicker:
     label: "Cheat AutoClicker"
@@ -329,11 +236,11 @@ templates:
     type: "BAN"
     tiers:
       - duration: "3d"
-        reason: "Automation or macro abuse"
+        reason: "Automation (AutoClicker, Macros)"
       - duration: "7d"
-        reason: "Repeated automation or macro abuse"
+        reason: "Automation (AutoClicker, Macros)"
       - duration: "30d"
-        reason: "Chronic automation or macro abuse"
+        reason: "Automation (AutoClicker, Macros)"
 
   cheat-misc:
     label: "Cheat Misc"
@@ -342,15 +249,12 @@ templates:
     type: "BAN"
     tiers:
       - duration: "1d"
-        reason: "Minor unfair advantage modification"
+        reason: "Minor Cheats (Health Indicators, Minimap)"
       - duration: "3d"
-        reason: "Repeated minor unfair advantage modification"
+        reason: "Minor Cheats (Health Indicators, Minimap)"
       - duration: "14d"
-        reason: "Chronic minor unfair advantage modification"
+        reason: "Minor Cheats (Health Indicators, Minimap)"
 
-  # -----------------------------------------------------------
-  # Gameplay & Server Integrity (Bans)
-  # -----------------------------------------------------------
   exploit-server:
     label: "Exploit Server"
     category: "Gameplay & Server Integrity"
@@ -358,11 +262,11 @@ templates:
     type: "BAN"
     tiers:
       - duration: "3d"
-        reason: "Server exploit abuse"
+        reason: "Server Exploits (Bug Abuse, Glitching)"
       - duration: "14d"
-        reason: "Repeated server exploit abuse"
+        reason: "Server Exploits (Bug Abuse, Glitching)"
       - duration: "permanent"
-        reason: "Severe or chronic exploit abuse"
+        reason: "Server Exploits (Bug Abuse, Glitching)"
 
   grief-server:
     label: "Grief Server"
@@ -371,9 +275,9 @@ templates:
     type: "BAN"
     tiers:
       - duration: "30d"
-        reason: "Major server griefing"
+        reason: "Griefing Server (Spawn, Warps, Roads)"
       - duration: "permanent"
-        reason: "Repeated major server griefing"
+        reason: "Griefing Server (Spawn, Warps, Roads)"
 
   inappropriate-builds:
     label: "Inappropriate Builds"
@@ -382,11 +286,11 @@ templates:
     type: "BAN"
     tiers:
       - duration: "1d"
-        reason: "Inappropriate builds"
+        reason: "Inappropriate Builds (Symbolism, NSFW)"
       - duration: "7d"
-        reason: "Repeated inappropriate builds"
+        reason: "Inappropriate Builds (Symbolism, NSFW)"
       - duration: "30d"
-        reason: "Chronic inappropriate builds"
+        reason: "Inappropriate Builds (Symbolism, NSFW)"
 
   inappropriate-skin:
     label: "Inappropriate Skin"
@@ -395,11 +299,11 @@ templates:
     type: "BAN"
     tiers:
       - duration: "1d"
-        reason: "Inappropriate skin or username"
+        reason: "Inappropriate Skin (Bad Skin/Username)"
       - duration: "7d"
-        reason: "Repeated inappropriate skin or username"
+        reason: "Inappropriate Skin (Bad Skin/Username)"
       - duration: "permanent"
-        reason: "Chronic inappropriate skin or username"
+        reason: "Inappropriate Skin (Bad Skin/Username)"
 
   refusing-ss:
     label: "Refusing SS"
@@ -408,9 +312,9 @@ templates:
     type: "BAN"
     tiers:
       - duration: "30d"
-        reason: "Refusing screenshare/logging out during checks"
+        reason: "Refusing Screenshare (OR logout during SS)"
       - duration: "permanent"
-        reason: "Repeated refusal to comply with checks"
+        reason: "Refusing Screenshare (OR logout during SS)"
 
   alt-farming:
     label: "Alt Farming"
@@ -419,13 +323,10 @@ templates:
     type: "BAN"
     tiers:
       - duration: "14d"
-        reason: "Alt account farming"
+        reason: "Alt Farming (Economy Abuse)"
       - duration: "permanent"
-        reason: "Repeated alt account farming"
+        reason: "Alt Farming (Economy Abuse)"
 
-  # -----------------------------------------------------------
-  # Blacklist / Zero Tolerance (Bans) (Admin+)
-  # -----------------------------------------------------------
   duping-economy:
     label: "Duping Economy"
     category: "Blacklist / Zero Tolerance"
@@ -433,7 +334,7 @@ templates:
     type: "BAN"
     tiers:
       - duration: "permanent"
-        reason: "Duping or severe economy abuse"
+        reason: "Duping / Economy"
 
   server-harm:
     label: "Server Harm"
@@ -442,7 +343,7 @@ templates:
     type: "BAN"
     tiers:
       - duration: "permanent"
-        reason: "Intentional lag machine or server harm"
+        reason: "Lag Machines"
 
   safety-threat:
     label: "Safety Threat"
@@ -451,7 +352,7 @@ templates:
     type: "BAN"
     tiers:
       - duration: "permanent"
-        reason: "Doxxing or severe real-world threats"
+        reason: "Doxxing / Threats"
 
   botting:
     label: "Botting"
@@ -460,14 +361,14 @@ templates:
     type: "BAN"
     tiers:
       - duration: "permanent"
-        reason: "Botting abuse"
+        reason: "Botting"
 
   punishment-evasion:
     label: "Punishment Evasion"
     category: "Blacklist / Zero Tolerance"
     permission: "flux.template.punishment-evasion"
     type: "BAN"
-    notes: "Use with IP punishment context when relevant."
+    notes: "Punishment Evasion is a special case! Please read the appeal guidelines for more information on how to handle them!"
     tiers:
       - duration: "permanent"
-        reason: "IP punishment evasion"
+        reason: "Punishment Evasion"
