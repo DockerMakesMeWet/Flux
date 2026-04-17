@@ -1,0 +1,75 @@
+package org.owl.flux.data;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
+import javax.sql.DataSource;
+
+public final class SchemaManager {
+    private final DataSource dataSource;
+    private final DatabaseEngine engine;
+
+    public SchemaManager(DataSource dataSource, DatabaseEngine engine) {
+        this.dataSource = dataSource;
+        this.engine = engine;
+    }
+
+    public void initialize() {
+        String metadataType = engine == DatabaseEngine.POSTGRESQL ? "JSONB" : "CLOB";
+        try (Connection connection = dataSource.getConnection(); Statement statement = connection.createStatement()) {
+            statement.execute("""
+                    CREATE TABLE IF NOT EXISTS players (
+                      uuid VARCHAR(36) PRIMARY KEY,
+                      username VARCHAR(32) NOT NULL,
+                      last_ip VARCHAR(45)
+                    )
+                    """);
+
+            statement.execute("""
+                    CREATE TABLE IF NOT EXISTS ip_history (
+                      uuid VARCHAR(36) NOT NULL,
+                      ip VARCHAR(45) NOT NULL,
+                      last_seen TIMESTAMP NOT NULL
+                    )
+                    """);
+
+            statement.execute("""
+                    CREATE TABLE IF NOT EXISTS punishments (
+                      id VARCHAR(6) PRIMARY KEY,
+                      type VARCHAR(16) NOT NULL,
+                      target_uuid VARCHAR(36),
+                      target_ip VARCHAR(45),
+                      target_username VARCHAR(32),
+                      executor_uuid VARCHAR(36),
+                      reason TEXT NOT NULL,
+                      start_time TIMESTAMP NOT NULL,
+                      end_time TIMESTAMP NULL,
+                      active BOOLEAN NOT NULL,
+                      voided BOOLEAN NOT NULL DEFAULT FALSE,
+                      issued_offline BOOLEAN NOT NULL DEFAULT FALSE,
+                      join_notice_delivered BOOLEAN NOT NULL DEFAULT FALSE,
+                      mute_expiry_notice_pending BOOLEAN NOT NULL DEFAULT FALSE,
+                      mute_expiry_notice_delivered BOOLEAN NOT NULL DEFAULT FALSE,
+                      metadata %s NOT NULL
+                    )
+                    """.formatted(metadataType));
+            statement.execute("ALTER TABLE punishments ADD COLUMN IF NOT EXISTS target_username VARCHAR(32)");
+            statement.execute("ALTER TABLE punishments ADD COLUMN IF NOT EXISTS issued_offline BOOLEAN NOT NULL DEFAULT FALSE");
+            statement.execute("ALTER TABLE punishments ADD COLUMN IF NOT EXISTS join_notice_delivered BOOLEAN NOT NULL DEFAULT FALSE");
+            statement.execute("ALTER TABLE punishments ADD COLUMN IF NOT EXISTS mute_expiry_notice_pending BOOLEAN NOT NULL DEFAULT FALSE");
+            statement.execute("ALTER TABLE punishments ADD COLUMN IF NOT EXISTS mute_expiry_notice_delivered BOOLEAN NOT NULL DEFAULT FALSE");
+
+            statement.execute("CREATE INDEX IF NOT EXISTS idx_ip_history_uuid ON ip_history(uuid)");
+            statement.execute("CREATE INDEX IF NOT EXISTS idx_ip_history_ip ON ip_history(ip)");
+            statement.execute("CREATE INDEX IF NOT EXISTS idx_players_username ON players(username)");
+            statement.execute("CREATE INDEX IF NOT EXISTS idx_punishments_target_uuid ON punishments(target_uuid)");
+            statement.execute("CREATE INDEX IF NOT EXISTS idx_punishments_target_ip ON punishments(target_ip)");
+            statement.execute("CREATE INDEX IF NOT EXISTS idx_punishments_active ON punishments(active)");
+            statement.execute("CREATE INDEX IF NOT EXISTS idx_punishments_voided ON punishments(voided)");
+            statement.execute("CREATE INDEX IF NOT EXISTS idx_punishments_start_time ON punishments(start_time)");
+            statement.execute("CREATE INDEX IF NOT EXISTS idx_punishments_mute_expiry_notice_pending ON punishments(mute_expiry_notice_pending)");
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Failed to initialize Flux database schema.", exception);
+        }
+    }
+}

@@ -1,0 +1,72 @@
+# =============================================================
+# Flux Discord Webhook Configuration
+# =============================================================
+# This file controls outbound Discord webhook formatting and delivery.
+#
+# Description placeholder values:
+#   <executor> <target> <reason> <id> <type> <action> <ip_punishment>
+#
+# Action keys emitted by Flux by default:
+#   ban, mute, kick, warn, void, unban, unmute
+
+webhook:
+  # Master on/off switch for webhook sending.
+  # Possible values: true, false
+  enabled: false
+
+  # Discord webhook endpoint.
+  # Possible values: empty string when disabled, otherwise a valid http/https URL when enabled=true
+  url: ""
+
+  # Display name shown in Discord.
+  # Possible values: any non-empty string accepted by Discord webhooks
+  username: "Flux"
+
+  # Avatar image URL for webhook sender.
+  # Possible values: empty string or valid URL (supports <target> placeholder)
+  avatar-url: "https://crafatar.com/avatars/<target>"
+
+  # HTTP timeout in milliseconds.
+  # Possible values: integer >= 1000 (common range: 3000-20000)
+  timeout-ms: 8000
+
+actions:
+  # For every action key below:
+  #   enabled       -> possible values: true, false
+  #   title         -> possible values: any non-empty string
+  #   description   -> possible values: any non-empty string + optional placeholders above
+
+  ban:
+    enabled: true
+    title: "Ban Issued"
+    description: "**<executor>** banned **<target>** (`<id>`) for: `<reason>` | IP Punishment: `<ip_punishment>`"
+
+  mute:
+    enabled: true
+    title: "Mute Issued"
+    description: "**<executor>** muted **<target>** (`<id>`) for: `<reason>` | IP Punishment: `<ip_punishment>`"
+
+  kick:
+    enabled: true
+    title: "Kick Issued"
+    description: "**<executor>** kicked **<target>** (`<id>`) for: `<reason>` | IP Punishment: `<ip_punishment>`"
+
+  warn:
+    enabled: true
+    title: "Warning Issued"
+    description: "**<executor>** warned **<target>** (`<id>`) for: `<reason>` | IP Punishment: `<ip_punishment>`"
+
+  void:
+    enabled: true
+    title: "Action Voided"
+    description: "**<executor>** voided action **<target>** | Reason: `<reason>` | IP Punishment: `<ip_punishment>`"
+
+  unban:
+    enabled: true
+    title: "Ban Lifted"
+    description: "**<executor>** unbanned **<target>** | IP Punishment: `<ip_punishment>`"
+
+  unmute:
+    enabled: true
+    title: "Mute Lifted"
+    description: "**<executor>** unmuted **<target>** | IP Punishment: `<ip_punishment>`"

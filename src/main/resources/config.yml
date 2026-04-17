@@ -1,0 +1,66 @@
+# =============================================================
+# Flux Main Configuration
+# =============================================================
+# Purpose:
+#   Controls storage provider selection and runtime integration behavior.
+#
+# Editing tips:
+#   - Strings must stay in quotes.
+#   - Integers must stay numeric (no quotes needed).
+#   - Booleans must be true or false.
+
+database:
+  # Storage backend used by Flux.
+  # Possible values:
+  #   - "postgresql" (recommended for production)
+  #   - "h2"         (single-file local fallback)
+  provider: "postgresql"
+
+  postgresql:
+    # PostgreSQL server hostname or IP.
+    # Possible values: any valid host (examples: "127.0.0.1", "db.internal", "postgres")
+    host: "127.0.0.1"
+
+    # PostgreSQL server port.
+    # Possible values: 1-65535 (default PostgreSQL port is 5432)
+    port: 5432
+
+    # Database/schema name Flux will connect to.
+    # Possible values: any valid PostgreSQL database name (example: "flux")
+    # If it does not exist, Flux will try to auto-create it using the configured credentials.
+    database: "flux"
+
+    # Database login username.
+    # Possible values: any valid PostgreSQL user (example: "flux")
+    username: "flux"
+
+    # Database login password.
+    # Possible values: any non-empty string
+    password: "change-me"
+
+    # Driver compatibility target used by Flux validation.
+    # Possible values (accepted): "17", "17.x"
+    server-version: "17"
+
+    pool:
+      # Maximum concurrent DB connections kept by HikariCP.
+      # Possible values: integer >= 1 (common range: 5-30)
+      maximum-pool-size: 10
+
+      # Minimum idle connections kept warm.
+      # Possible values: integer >= 0 and <= maximum-pool-size (common range: 1-10)
+      minimum-idle: 2
+
+      # How long Flux waits for a connection before failing (milliseconds).
+      # Possible values: integer >= 1000 (common range: 5000-60000)
+      connection-timeout-ms: 30000
+
+  h2:
+    # H2 file name (without extension) in the plugin data folder.
+    # Possible values: safe filename string (examples: "flux-data", "flux-dev", "local-flux")
+    file: "flux-data"
+
+masters:
+  # Refreshes masters endpoint when /flux reload runs.
+  # Possible values: true, false
+  refresh-on-reload: true
