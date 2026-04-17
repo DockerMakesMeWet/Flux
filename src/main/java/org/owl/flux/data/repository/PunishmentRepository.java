@@ -179,7 +179,7 @@ public final class PunishmentRepository {
         }
     }
 
-    public Optional<PunishmentRecord> findActivePunishment(String targetUuid, String targetIp, PunishmentType type) {
+    public Optional<PunishmentRecord> findActivePunishment(String targetUuid, String targetUsername, String targetIp, PunishmentType type) {
         expireEndedPunishments();
         String sql = """
                 SELECT * FROM punishments
@@ -188,17 +188,21 @@ public final class PunishmentRepository {
                   AND voided = FALSE
                   AND (
                         (target_uuid IS NOT NULL AND target_uuid = ?)
+                     OR (target_username IS NOT NULL AND LOWER(target_username) = LOWER(?))
                      OR (target_ip IS NOT NULL AND target_ip = ?)
                   )
                 ORDER BY start_time DESC
                 LIMIT 1
                 """;
 
+        String normalizedUsername = targetUsername == null ? "" : targetUsername.trim();
+
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, type.name());
             statement.setString(2, targetUuid);
-            statement.setString(3, targetIp);
+            statement.setString(3, normalizedUsername);
+            statement.setString(4, targetIp);
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (!resultSet.next()) {
                     return Optional.empty();
@@ -362,13 +366,15 @@ public final class PunishmentRepository {
         }
     }
 
-    public boolean deactivateActiveByTargetUuid(String targetUuid, PunishmentType type) {
+    public boolean deactivateActiveByTarget(String targetUuid, String targetUsername, PunishmentType type) {
         expireEndedPunishments();
+        String normalizedUsername = targetUsername == null ? "" : targetUsername.trim();
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(
-                     "UPDATE punishments SET active = FALSE WHERE target_uuid = ? AND type = ? AND active = TRUE AND voided = FALSE")) {
-            statement.setString(1, targetUuid);
-            statement.setString(2, type.name());
+                     "UPDATE punishments SET active = FALSE WHERE type = ? AND active = TRUE AND voided = FALSE AND (target_uuid = ? OR LOWER(target_username) = LOWER(?))")) {
+            statement.setString(1, type.name());
+            statement.setString(2, targetUuid);
+            statement.setString(3, normalizedUsername);
             return statement.executeUpdate() > 0;
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to deactivate active punishment by target UUID.", exception);
@@ -411,12 +417,14 @@ public final class PunishmentRepository {
         }
     }
 
-    public List<PunishmentRecord> historyByTarget(String targetUuid) {
+    public List<PunishmentRecord> historyByTarget(String targetUuid, String targetUsername) {
+        String normalizedUsername = targetUsername == null ? "" : targetUsername.trim();
         List<PunishmentRecord> list = new ArrayList<>();
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(
-                     "SELECT * FROM punishments WHERE target_uuid = ? ORDER BY start_time DESC")) {
+                     "SELECT * FROM punishments WHERE target_uuid = ? OR LOWER(target_username) = LOWER(?) ORDER BY start_time DESC")) {
             statement.setString(1, targetUuid);
+            statement.setString(2, normalizedUsername);
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
                     list.add(readPunishment(resultSet));
@@ -445,13 +453,15 @@ public final class PunishmentRepository {
         }
     }
 
-    public List<PunishmentRecord> activeByTarget(String targetUuid) {
+    public List<PunishmentRecord> activeByTarget(String targetUuid, String targetUsername) {
         expireEndedPunishments();
+        String normalizedUsername = targetUsername == null ? "" : targetUsername.trim();
         List<PunishmentRecord> list = new ArrayList<>();
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(
-                     "SELECT * FROM punishments WHERE target_uuid = ? AND active = TRUE AND voided = FALSE ORDER BY start_time DESC")) {
+                     "SELECT * FROM punishments WHERE active = TRUE AND voided = FALSE AND (target_uuid = ? OR LOWER(target_username) = LOWER(?)) ORDER BY start_time DESC")) {
             statement.setString(1, targetUuid);
+            statement.setString(2, normalizedUsername);
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
                     list.add(readPunishment(resultSet));

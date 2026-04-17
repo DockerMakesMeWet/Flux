@@ -341,15 +341,15 @@ public final class FluxCommandRegistrar {
         String targetDisplay = input;
         boolean ipPunishment = false;
         if (NetworkUtil.isIpLiteral(input)) {
-            Optional<PunishmentRecord> activeBan = punishmentService.activeBan(null, input);
+            Optional<PunishmentRecord> activeBan = punishmentService.activeBan(null, null, input);
             changed = punishmentService.unbanByIp(input);
             ipPunishment = activeBan.map(punishmentService::isIpPunishment).orElse(false);
         } else {
             Optional<TargetProfile> targetMaybe = targetResolver.resolvePlayer(input);
             if (targetMaybe.isPresent()) {
                 TargetProfile target = targetMaybe.get();
-                Optional<PunishmentRecord> activeBan = punishmentService.activeBan(target.uuid(), target.ip());
-                changed = punishmentService.unbanByTarget(target.uuid());
+                Optional<PunishmentRecord> activeBan = punishmentService.activeBan(target.uuid(), target.username(), target.ip());
+                changed = punishmentService.unbanByTarget(target.uuid(), target.username());
                 targetDisplay = target.username();
                 ipPunishment = activeBan.map(punishmentService::isIpPunishment).orElse(false);
             } else if (looksLikePunishmentIdToken(input)) {
@@ -392,9 +392,9 @@ public final class FluxCommandRegistrar {
         Optional<TargetProfile> targetMaybe = targetResolver.resolvePlayer(input);
         if (targetMaybe.isPresent()) {
             TargetProfile target = targetMaybe.get();
-            Optional<PunishmentRecord> activeMute = punishmentService.activeMute(target.uuid());
+            Optional<PunishmentRecord> activeMute = punishmentService.activeMute(target.uuid(), target.username());
             unmutedRecord = activeMute == null ? Optional.empty() : activeMute;
-            changed = punishmentService.unmuteByTarget(target.uuid());
+            changed = punishmentService.unmuteByTarget(target.uuid(), target.username());
             targetDisplay = target.username();
         } else if (looksLikePunishmentIdToken(input)) {
             String id = input.toUpperCase(Locale.ROOT);
@@ -483,7 +483,7 @@ public final class FluxCommandRegistrar {
         }
 
         TargetProfile target = targetMaybe.get();
-        List<PunishmentRecord> active = punishmentRepository.activeByTarget(target.uuid());
+        List<PunishmentRecord> active = punishmentRepository.activeByTarget(target.uuid(), target.username());
         messageService.send(invocation.source(), "<gray>Active punishments for <target>:</gray>", Map.of("target", target.username()));
         if (active.isEmpty()) {
             messageService.sendActionNotFound(invocation.source());
@@ -548,7 +548,7 @@ public final class FluxCommandRegistrar {
             return;
         }
         TargetProfile target = targetMaybe.get();
-        List<PunishmentRecord> history = punishmentRepository.historyByTarget(target.uuid());
+        List<PunishmentRecord> history = punishmentRepository.historyByTarget(target.uuid(), target.username());
         messageService.sendHistoryHeader(invocation.source(), target.username());
         if (history.isEmpty()) {
             messageService.sendActionNotFound(invocation.source());

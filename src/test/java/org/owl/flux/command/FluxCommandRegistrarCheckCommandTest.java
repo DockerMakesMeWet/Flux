@@ -52,8 +52,6 @@ class FluxCommandRegistrarCheckCommandTest {
         PunishmentRecord record = new PunishmentRecord(
                 "AB123",
                 PunishmentType.BAN,
-                "target-uuid",
-                "203.0.113.10",
                 "executor-uuid",
                 "Test reason",
                 Instant.parse("2026-01-01T00:00:00Z"),
@@ -90,7 +88,6 @@ class FluxCommandRegistrarCheckCommandTest {
         PunishmentRecord record = new PunishmentRecord(
                 "AB124",
                 PunishmentType.BAN,
-                null,
                 "203.0.113.11",
                 "NeverSeenUser",
                 "executor-uuid",
@@ -127,12 +124,12 @@ class FluxCommandRegistrarCheckCommandTest {
 
         when(targetResolver.resolvePlayer("TargetUser"))
                 .thenReturn(Optional.of(new TargetProfile("target-uuid", "TargetUser", "203.0.113.10", null)));
-        when(punishmentRepository.activeByTarget("target-uuid"))
+        when(punishmentRepository.activeByTarget("TargetUser"))
                 .thenReturn(List.of(punishment("AB001", "target-uuid", "203.0.113.10")));
 
         invoke(registrar, "runCheckPlayer", invocation(source, "TargetUser"));
 
-        verify(punishmentRepository).activeByTarget("target-uuid");
+        verify(punishmentRepository).activeByTarget("TargetUser");
         verify(messageService).send(source, "<gray>Active punishments for <target>:</gray>", Map.of("target", "TargetUser"));
     }
 

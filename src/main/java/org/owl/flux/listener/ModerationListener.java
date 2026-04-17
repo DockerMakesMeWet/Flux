@@ -46,7 +46,7 @@ public final class ModerationListener {
             return;
         }
 
-        punishmentService.activeMute(player.getUniqueId().toString()).ifPresent(mute -> {
+        punishmentService.activeMute(player.getUniqueId().toString(), player.getUsername()).ifPresent(mute -> {
             event.setResult(PlayerChatEvent.ChatResult.denied());
             player.sendMessage(messageService.mutedMessage(mute));
         });
@@ -68,7 +68,7 @@ public final class ModerationListener {
         }
 
         String ip = NetworkUtil.extractIp(player);
-        punishmentService.activeBan(player.getUniqueId().toString(), ip).ifPresent(ban ->
+        punishmentService.activeBan(player.getUniqueId().toString(), player.getUsername(), ip).ifPresent(ban ->
                 event.setResult(com.velocitypowered.api.event.ResultedEvent.ComponentResult.denied(
                         messageService.banScreen(ban.id(), ban.reason(), ban.endTime())
                 ))

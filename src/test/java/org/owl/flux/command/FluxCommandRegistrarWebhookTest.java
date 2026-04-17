@@ -42,8 +42,8 @@ class FluxCommandRegistrarWebhookTest {
 
         PunishmentService punishmentService = mock(PunishmentService.class);
         PunishmentRecord activeBan = punishment("BAN001", Map.of("ip_punishment", "true"));
-        when(punishmentService.activeBan("uuid-1", "203.0.113.10")).thenReturn(Optional.of(activeBan));
-        when(punishmentService.unbanByTarget("uuid-1")).thenReturn(true);
+        when(punishmentService.activeBan("TargetUser", "203.0.113.10")).thenReturn(Optional.of(activeBan));
+        when(punishmentService.unbanByTarget("TargetUser")).thenReturn(true);
         when(punishmentService.isIpPunishment(activeBan)).thenReturn(true);
 
         FluxCommandRegistrar registrar = registrar(targetResolver, punishmentService);
@@ -89,7 +89,6 @@ class FluxCommandRegistrarWebhookTest {
         PunishmentRecord record = new PunishmentRecord(
                 "BA2001",
                 PunishmentType.BAN,
-                null,
                 "198.51.100.40",
                 null,
                 "executor-uuid",
@@ -124,7 +123,7 @@ class FluxCommandRegistrarWebhookTest {
         when(targetResolver.resolvePlayer("TargetUser")).thenReturn(Optional.of(target));
 
         PunishmentService punishmentService = mock(PunishmentService.class);
-        when(punishmentService.unmuteByTarget("uuid-1")).thenReturn(true);
+        when(punishmentService.unmuteByTarget("TargetUser")).thenReturn(true);
 
         FluxCommandRegistrar registrar = registrar(targetResolver, punishmentService);
         invoke(registrar, "runUnmute", invocation);
@@ -168,7 +167,6 @@ class FluxCommandRegistrarWebhookTest {
         PunishmentRecord record = new PunishmentRecord(
                 "MU2201",
                 PunishmentType.MUTE,
-                "00000000-0000-0000-0000-000000000220",
                 null,
                 null,
                 "executor-uuid",

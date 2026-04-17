@@ -109,16 +109,16 @@ public final class PunishmentService {
         throw new IllegalStateException("Unable to persist punishment with a unique Flux action ID.", lastCollision);
     }
 
-    public Optional<PunishmentRecord> activeMute(String targetUuid) {
-        return punishmentRepository.findActivePunishment(targetUuid, null, PunishmentType.MUTE);
+    public Optional<PunishmentRecord> activeMute(String targetUuid, String targetUsername) {
+        return punishmentRepository.findActivePunishment(targetUuid, targetUsername, null, PunishmentType.MUTE);
     }
 
-    public Optional<PunishmentRecord> activeBan(String targetUuid, String ip) {
-        return punishmentRepository.findActivePunishment(targetUuid, ip, PunishmentType.BAN);
+    public Optional<PunishmentRecord> activeBan(String targetUuid, String targetUsername, String ip) {
+        return punishmentRepository.findActivePunishment(targetUuid, targetUsername, ip, PunishmentType.BAN);
     }
 
-    public boolean unbanByTarget(String targetUuid) {
-        return punishmentRepository.deactivateActiveByTargetUuid(targetUuid, PunishmentType.BAN);
+    public boolean unbanByTarget(String targetUuid, String targetUsername) {
+        return punishmentRepository.deactivateActiveByTarget(targetUuid, targetUsername, PunishmentType.BAN);
     }
 
     public boolean unbanByIp(String ip) {
@@ -129,8 +129,8 @@ public final class PunishmentService {
         return punishmentRepository.deactivateActiveById(id, PunishmentType.BAN);
     }
 
-    public boolean unmuteByTarget(String targetUuid) {
-        return punishmentRepository.deactivateActiveByTargetUuid(targetUuid, PunishmentType.MUTE);
+    public boolean unmuteByTarget(String targetUuid, String targetUsername) {
+        return punishmentRepository.deactivateActiveByTarget(targetUuid, targetUsername, PunishmentType.MUTE);
     }
 
     public boolean unmuteById(String id) {
