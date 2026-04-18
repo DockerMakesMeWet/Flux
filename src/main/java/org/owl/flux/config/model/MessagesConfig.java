@@ -68,17 +68,147 @@ public final class MessagesConfig {
 
     @ConfigSerializable
     public static final class CommandMessages {
+        @Setting("usage-format")
+        public String usageFormat = "<red>Usage: <white><usage></white></red>";
+
+        @Setting("usage-ban")
+        public String usageBan = "/ban <user> [duration] <reason/#template>";
+
+        @Setting("usage-mute")
+        public String usageMute = "/mute <user> [duration] <reason/#template>";
+
+        @Setting("usage-warn")
+        public String usageWarn = "/warn <user> <reason/#template>";
+
+        @Setting("usage-kick")
+        public String usageKick = "/kick <user> <reason/#template>";
+
+        @Setting("usage-ipban")
+        public String usageIpBan = "/ipban <user/ip> [duration] <reason/#template>";
+
+        @Setting("usage-unban")
+        public String usageUnban = "/unban <user/ip/id>";
+
+        @Setting("usage-unmute")
+        public String usageUnmute = "/unmute <user/id>";
+
+        @Setting("usage-void")
+        public String usageVoid = "/void <id>";
+
+        @Setting("usage-history")
+        public String usageHistory = "/history <user> [page]";
+
+        @Setting("usage-alts")
+        public String usageAlts = "/alts <user> [page]";
+
+        @Setting("usage-iphistory")
+        public String usageIpHistory = "/iphistory <ip/user> [page]";
+
+        @Setting("usage-check")
+        public String usageCheck = "/check <id>";
+
+        @Setting("usage-checkplayer")
+        public String usageCheckPlayer = "/checkplayer <user> [page]";
+
+        @Setting("usage-checkip")
+        public String usageCheckIp = "/checkip <ip/user> [page]";
+
+        @Setting("usage-flux")
+        public String usageFlux = "/flux [reload|ver|info|version]";
+
+        @Setting("invalid-duration")
+        public String invalidDuration = "<red>Invalid duration format.</red>";
+
+        @Setting("template-not-found")
+        public String templateNotFound = "<red>Template not found.</red>";
+
+        @Setting("invalid-page")
+        public String invalidPage = "<red>Invalid page <white><page></white>. Use a positive number.</red>";
+
         @Setting("action-created")
         public String actionCreated = "<yellow>Action logged: <white><type></white> on <white><target></white> <gray>(ID: <id>)</gray></yellow>";
+
+        @Setting("punishment-summary-header")
+        public String punishmentSummaryHeader =
+                "<gray>===</gray> <yellow>Punishment summary for <white><id></white></yellow> <gray>===</gray>";
+
+        @Setting("punishment-summary-footer")
+        public String punishmentSummaryFooter =
+                "<gray>===</gray> <yellow>End punishment summary for <white><id></white></yellow> <gray>===</gray>";
 
         @Setting("action-updated")
         public String actionUpdated = "<yellow>Updated punishment state for <white><target></white>.</yellow>";
 
+        @Setting("void-updated")
+        public String voidUpdated = "<yellow>Voided punishment/action <white><id></white>.</yellow>";
+
         @Setting("action-not-found")
         public String actionNotFound = "<red>No matching punishment was found.</red>";
 
+        @Setting("check-header")
+        public String checkHeader =
+                "<gray>===</gray> <yellow>Checking action <white><id></white></yellow> <gray>===</gray>";
+
+        @Setting("check-footer")
+        public String checkFooter =
+                "<gray>===</gray> <yellow>End check for <white><id></white></yellow> <gray>===</gray>";
+
+        @Setting("check-detail-type")
+        public String checkDetailType = "<gray>Type:</gray> <white><type></white>";
+
+        @Setting("check-detail-target")
+        public String checkDetailTarget = "<gray>Target:</gray> <white><target></white> <dark_gray>(ip=<ip>)</dark_gray>";
+
+        @Setting("check-detail-issuer")
+        public String checkDetailIssuer = "<gray>Issuer:</gray> <white><issuer></white>";
+
+        @Setting("check-detail-reason")
+        public String checkDetailReason = "<gray>Reason:</gray> <white><reason></white>";
+
+        @Setting("check-detail-started")
+        public String checkDetailStarted = "<gray>Started:</gray> <white><started></white>";
+
+        @Setting("check-detail-duration")
+        public String checkDetailDuration = "<gray>Duration:</gray> <white><duration></white>";
+
+        @Setting("check-detail-expires")
+        public String checkDetailExpires = "<gray>Expires:</gray> <white><expires></white>";
+
+        @Setting("check-detail-status")
+        public String checkDetailStatus = "<gray>Active:</gray> <white><active></white> <gray>| Voided:</gray> <white><voided></white>";
+
+        @Setting("check-detail-meta")
+        public String checkDetailMeta = "<gray>IP Punishment:</gray> <white><ip_punishment></white> <gray>| Template:</gray> <white><template></white>";
+
+        @Setting("check-summary-entry")
+        public String checkSummaryEntry = "<gray>-</gray> <white><id></white> <yellow><type></yellow> <gray><reason></gray> <dark_gray>(expires=<expires>)</dark_gray>";
+
+        @Setting("check-summary-entry-with-target")
+        public String checkSummaryEntryWithTarget = "<gray>-</gray> <white><id></white> <yellow><type></yellow> <gray><reason></gray> <dark_gray>(target=<target>, expires=<expires>)</dark_gray>";
+
+        @Setting("checkplayer-header")
+        public String checkPlayerHeader =
+                "<gray>===</gray> <yellow>Checking active punishments for <white><target></white></yellow> <gray>===</gray>";
+
+        @Setting("checkplayer-footer")
+        public String checkPlayerFooter =
+                "<gray>===</gray> <yellow>Found <white><count></white> active entries for <white><target></white></yellow> <gray>===</gray>";
+
+        @Setting("checkip-header")
+        public String checkIpHeader =
+                "<gray>===</gray> <yellow>Checking active punishments for IP <white><target></white></yellow> <gray>===</gray>";
+
+        @Setting("checkip-footer")
+        public String checkIpFooter =
+                "<gray>===</gray> <yellow>Found <white><count></white> active entries for IP <white><target></white></yellow> <gray>===</gray>";
+
         @Setting("history-header")
-        public String historyHeader = "<yellow>History for <white><target></white>:</yellow>";
+        public String historyHeader =
+                "<gray>===</gray> <yellow>History of <white><target></white></yellow> <gray>===</gray>";
+
+        @Setting("history-footer")
+        public String historyFooter =
+                "<gray>===</gray> <yellow>End history of <white><target></white> (<count>)</yellow> <gray>===</gray>";
 
         @Setting("history-entry")
         public String historyEntry = "<gray>•</gray> <white><id></white> <yellow><type></yellow> <gray>-</gray> <white><reason></white> <dark_gray>(voided=<voided>)</dark_gray>";
@@ -93,11 +223,34 @@ public final class MessagesConfig {
         @Setting("alts-entry")
         public String altsEntry = "<gray>•</gray> <white><username></white>";
 
+        @Setting("iphistory-account-entry")
+        public String ipHistoryAccountEntry = "<gray>-</gray> <white><account></white> <dark_gray>(<seen>)</dark_gray>";
+
         @Setting("iphistory-header")
-        public String ipHistoryHeader = "<yellow>IP history for <white><target></white>:</yellow>";
+        public String ipHistoryHeader =
+                "<gray>===</gray> <yellow>IP history for <white><target></white></yellow> <gray>===</gray>";
+
+        @Setting("iphistory-footer")
+        public String ipHistoryFooter =
+                "<gray>===</gray> <yellow>End IP history of <white><target></white> (<count>)</yellow> <gray>===</gray>";
 
         @Setting("iphistory-entry")
         public String ipHistoryEntry = "<gray>•</gray> <white><ip></white> <dark_gray>(<seen>)</dark_gray>";
+
+        @Setting("pagination-prev")
+        public String paginationPrev = "<yellow><bold><<</bold></yellow>";
+
+        @Setting("pagination-prev-disabled")
+        public String paginationPrevDisabled = "<dark_gray><bold><<</bold></dark_gray>";
+
+        @Setting("pagination-viewing")
+        public String paginationViewing = "<yellow>Viewing page <white><page></white> out of <white><pages></white></yellow>";
+
+        @Setting("pagination-next")
+        public String paginationNext = "<yellow><bold>>></bold></yellow>";
+
+        @Setting("pagination-next-disabled")
+        public String paginationNextDisabled = "<dark_gray><bold>>></bold></dark_gray>";
 
         @Setting("reload-success")
         public String reloadSuccess = "<yellow><server></yellow><gray> configs reloaded and masters refreshed.</gray>";

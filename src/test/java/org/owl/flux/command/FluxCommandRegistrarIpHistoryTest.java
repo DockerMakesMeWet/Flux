@@ -40,16 +40,9 @@ class FluxCommandRegistrarIpHistoryTest {
         invoke(registrar, "runIpHistory", invocation(source, "203.0.113.10"));
 
         verify(messageService).sendIpHistoryHeader(source, "203.0.113.10");
-        verify(messageService).send(
-                source,
-                "<gray>-</gray> <white><account></white> <dark_gray>(<seen>)</dark_gray>",
-                Map.of("account", "Alpha", "seen", "2026-01-03T00:00:00Z")
-        );
-        verify(messageService).send(
-                source,
-                "<gray>-</gray> <white><account></white> <dark_gray>(<seen>)</dark_gray>",
-                Map.of("account", "Bravo", "seen", "2026-01-02T00:00:00Z")
-        );
+        verify(messageService).sendIpHistoryAccountEntry(source, "Alpha", "2026-01-03T00:00:00Z");
+        verify(messageService).sendIpHistoryAccountEntry(source, "Bravo", "2026-01-02T00:00:00Z");
+        verify(messageService).sendPaginationFooter(source, 1, 1, "/iphistory 203.0.113.10");
     }
 
     @Test
@@ -65,6 +58,7 @@ class FluxCommandRegistrarIpHistoryTest {
 
         verify(messageService).sendIpHistoryHeader(source, "203.0.113.99");
         verify(messageService).sendActionNotFound(source);
+        verify(messageService).sendPaginationFooter(source, 1, 1, "/iphistory 203.0.113.99");
     }
 
     private static FluxCommandRegistrar registrar(MessageService messageService, PlayerRepository playerRepository) {

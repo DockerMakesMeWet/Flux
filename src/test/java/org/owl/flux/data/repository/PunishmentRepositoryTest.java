@@ -246,7 +246,7 @@ class PunishmentRepositoryTest {
         punishmentRepository.save(new PunishmentRecord(
                 "AB0001",
                 PunishmentType.BAN,
-                null,
+                "target-uuid",
                 "203.0.113.7",
                 "TargetUser",
                 "00000000-0000-0000-0000-000000000000",
@@ -262,7 +262,7 @@ class PunishmentRepositoryTest {
         punishmentRepository.save(new PunishmentRecord(
                 "AB0002",
                 PunishmentType.BAN,
-                null,
+                "target-uuid",
                 "203.0.113.7",
                 "TargetUser",
                 "00000000-0000-0000-0000-000000000000",
@@ -276,7 +276,7 @@ class PunishmentRepositoryTest {
                 Map.of()
         ));
 
-        List<PunishmentRecord> active = punishmentRepository.activeByTarget(null, "TargetUser");
+        List<PunishmentRecord> active = punishmentRepository.activeByTarget("target-uuid", "TargetUser");
         assertEquals(List.of("AB0001"), active.stream().map(PunishmentRecord::id).toList());
     }
 

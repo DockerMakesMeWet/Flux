@@ -38,7 +38,7 @@ class FluxCommandRegistrarWebhookTest {
 
         TargetResolver targetResolver = mock(TargetResolver.class);
         TargetProfile target = new TargetProfile("uuid-1", "TargetUser", "203.0.113.10", null);
-        when(targetResolver.resolvePlayer("TargetUser")).thenReturn(Optional.of(target));
+        when(targetResolver.resolvePunishmentTarget("TargetUser")).thenReturn(Optional.of(target));
 
         PunishmentService punishmentService = mock(PunishmentService.class);
         PunishmentRecord activeBan = punishment("BAN001", Map.of("ip_punishment", "true"));
@@ -50,6 +50,30 @@ class FluxCommandRegistrarWebhookTest {
         invoke(registrar, "runUnban", invocation);
 
         verify(punishmentService).sendUnbanWebhook("TargetUser", source, true);
+    }
+
+    @Test
+    void runUnbanSupportsNeverSeenUsernameFallback() throws Exception {
+        CommandSource source = mock(CommandSource.class);
+        SimpleCommand.Invocation invocation = mock(SimpleCommand.Invocation.class);
+        when(invocation.source()).thenReturn(source);
+        when(invocation.arguments()).thenReturn(new String[]{"NeverSeen"});
+
+        TargetResolver targetResolver = mock(TargetResolver.class);
+        TargetProfile target = new TargetProfile(null, "NeverSeen", null, null);
+        when(targetResolver.resolvePunishmentTarget("NeverSeen")).thenReturn(Optional.of(target));
+
+        PunishmentService punishmentService = mock(PunishmentService.class);
+        PunishmentRecord activeBan = punishment("BAN010", Map.of("ip_punishment", "false"));
+        when(punishmentService.activeBan(null, "NeverSeen", null)).thenReturn(Optional.of(activeBan));
+        when(punishmentService.unbanByTarget(null, "NeverSeen")).thenReturn(true);
+        when(punishmentService.isIpPunishment(activeBan)).thenReturn(false);
+
+        FluxCommandRegistrar registrar = registrar(targetResolver, punishmentService);
+        invoke(registrar, "runUnban", invocation);
+
+        verify(punishmentService).unbanByTarget(null, "NeverSeen");
+        verify(punishmentService).sendUnbanWebhook("NeverSeen", source, false);
     }
 
     @Test
@@ -121,7 +145,7 @@ class FluxCommandRegistrarWebhookTest {
 
         TargetResolver targetResolver = mock(TargetResolver.class);
         TargetProfile target = new TargetProfile("uuid-1", "TargetUser", "203.0.113.10", null);
-        when(targetResolver.resolvePlayer("TargetUser")).thenReturn(Optional.of(target));
+        when(targetResolver.resolvePunishmentTarget("TargetUser")).thenReturn(Optional.of(target));
 
         PunishmentService punishmentService = mock(PunishmentService.class);
         when(punishmentService.unmuteByTarget("uuid-1", "TargetUser")).thenReturn(true);
@@ -130,6 +154,30 @@ class FluxCommandRegistrarWebhookTest {
         invoke(registrar, "runUnmute", invocation);
 
         verify(punishmentService).sendUnmuteWebhook("TargetUser", source);
+    }
+
+    @Test
+    void runUnmuteSupportsNeverSeenUsernameFallback() throws Exception {
+        CommandSource source = mock(CommandSource.class);
+        SimpleCommand.Invocation invocation = mock(SimpleCommand.Invocation.class);
+        when(invocation.source()).thenReturn(source);
+        when(invocation.arguments()).thenReturn(new String[]{"NeverSeen"});
+
+        TargetResolver targetResolver = mock(TargetResolver.class);
+        TargetProfile target = new TargetProfile(null, "NeverSeen", null, null);
+        when(targetResolver.resolvePunishmentTarget("NeverSeen")).thenReturn(Optional.of(target));
+
+        PunishmentService punishmentService = mock(PunishmentService.class);
+        PunishmentRecord activeMute = punishment("MU9011", PunishmentType.MUTE, "NeverSeen", Map.of());
+        when(punishmentService.activeMute(null, "NeverSeen")).thenReturn(Optional.of(activeMute));
+        when(punishmentService.unmuteByTarget(null, "NeverSeen")).thenReturn(true);
+
+        FluxCommandRegistrar registrar = registrar(targetResolver, punishmentService);
+        invoke(registrar, "runUnmute", invocation);
+
+        verify(punishmentService).unmuteByTarget(null, "NeverSeen");
+        verify(punishmentService).sendUnmuteWebhook("NeverSeen", source);
+        verify(punishmentService).notifyPlayerUnmuted(activeMute);
     }
 
     @Test

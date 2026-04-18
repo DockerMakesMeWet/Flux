@@ -191,6 +191,21 @@ class FluxCommandRegistrarCompletionSourceTest {
     }
 
     @Test
+    void paginatedListCommandsSuggestPageNumbersOnSecondArgument() throws Exception {
+        ProxyServer server = mock(ProxyServer.class);
+        Player alpha = player("Alpha");
+        when(server.getAllPlayers()).thenReturn(List.of(alpha));
+        FluxCommandRegistrar registrar = registrar(server, mock(PlayerRepository.class));
+        CommandSource source = mock(CommandSource.class);
+
+        assertEquals(List.of("2"), invokeSuggestionMethod(registrar, "suggestHistory", invocation(source, "Alpha", "2")));
+        assertEquals(List.of("3"), invokeSuggestionMethod(registrar, "suggestCheckPlayer", invocation(source, "Alpha", "3")));
+        assertEquals(List.of("4"), invokeSuggestionMethod(registrar, "suggestCheckIp", invocation(source, "Alpha", "4")));
+        assertEquals(List.of("5"), invokeSuggestionMethod(registrar, "suggestAlts", invocation(source, "Alpha", "5")));
+        assertEquals(List.of("10"), invokeSuggestionMethod(registrar, "suggestIpHistory", invocation(source, "Alpha", "10")));
+    }
+
+    @Test
     void suggestUnbanAndUnmuteIncludeActivePunishmentIdsByPrefix() throws Exception {
         ProxyServer server = mock(ProxyServer.class);
         List<Player> onlinePlayers = List.of(player("Alpha"));
