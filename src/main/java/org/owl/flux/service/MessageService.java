@@ -218,10 +218,11 @@ public final class MessageService {
         send(source, messages.commands.checkDetailExpires, Map.of("expires", safeText(expires)));
     }
 
-    public void sendCheckDetailStatus(CommandSource source, String active, String voided) {
+    public void sendCheckDetailStatus(CommandSource source, String active, String voided, String voidReason) {
         send(source, messages.commands.checkDetailStatus, Map.of(
                 "active", safeText(active),
-                "voided", safeText(voided)
+                "voided", safeText(voided),
+                "void_reason", safeText(voidReason)
         ));
     }
 
@@ -254,12 +255,23 @@ public final class MessageService {
         ));
     }
 
-    public void sendCheckSummaryEntry(CommandSource source, String id, String type, String reason, String expires) {
+    public void sendCheckSummaryEntry(
+            CommandSource source,
+            String id,
+            String type,
+            String reason,
+            String expires,
+            String voided,
+            String voidReason
+    ) {
         send(source, messages.commands.checkSummaryEntry, Map.of(
                 "id", safeText(id),
                 "type", safeText(type),
                 "reason", safeText(reason),
-                "expires", safeText(expires)
+                "expires", safeText(expires),
+                "voided", safeText(voided),
+                "void_reason", safeText(voidReason),
+                "void_note", voidNote(voided, voidReason)
         ));
     }
 
@@ -269,14 +281,19 @@ public final class MessageService {
             String type,
             String reason,
             String target,
-            String expires
+            String expires,
+            String voided,
+            String voidReason
     ) {
         send(source, messages.commands.checkSummaryEntryWithTarget, Map.of(
                 "id", safeText(id),
                 "type", safeText(type),
                 "reason", safeText(reason),
                 "target", safeText(target),
-                "expires", safeText(expires)
+                "expires", safeText(expires),
+                "voided", safeText(voided),
+                "void_reason", safeText(voidReason),
+                "void_note", voidNote(voided, voidReason)
         ));
     }
 
@@ -291,12 +308,21 @@ public final class MessageService {
         ));
     }
 
-    public void sendHistoryEntry(CommandSource source, String id, String type, String reason, String voided) {
+    public void sendHistoryEntry(
+            CommandSource source,
+            String id,
+            String type,
+            String reason,
+            String voided,
+            String voidReason
+    ) {
         Map<String, String> placeholders = Map.of(
                 "id", safeText(id),
                 "type", safeText(type),
                 "reason", safeText(reason),
-                "voided", safeText(voided)
+                "voided", safeText(voided),
+                "void_reason", safeText(voidReason),
+                "void_note", voidNote(voided, voidReason)
         );
         Component component = renderWithPrefix(messages.commands.historyEntry, placeholders)
                 .hoverEvent(HoverEvent.showText(component(messages.commands.historyEntryHover, placeholders)))
@@ -431,6 +457,10 @@ public final class MessageService {
                 player.sendMessage(component);
             }
         }
+        CommandSource console = server.getConsoleCommandSource();
+        if (console != null) {
+            console.sendMessage(component(messages.staff.actionBroadcastConsole, placeholders));
+        }
         if (targetPlayer != null && !permissionService.canSeeSilentNotifications(targetPlayer)) {
             Map<String, String> playerPlaceholders = new HashMap<>(placeholders);
             playerPlaceholders.put("type", friendlyPunishmentType(record));
@@ -438,11 +468,12 @@ public final class MessageService {
         }
     }
 
-    public void broadcastVoid(String voidActionId, String targetActionId, String executor) {
+    public void broadcastVoid(String voidActionId, String targetActionId, String executor, String reason) {
         Map<String, String> placeholders = Map.of(
                 "id", safeText(voidActionId),
                 "target_id", safeText(targetActionId),
-                "executor", safeText(executor)
+                "executor", safeText(executor),
+                "reason", safeText(reason)
         );
         Component component = renderWithPrefix(messages.staff.voidBroadcast, placeholders)
                 .clickEvent(ClickEvent.suggestCommand("/check " + safeText(targetActionId)))
@@ -451,6 +482,10 @@ public final class MessageService {
             if (permissionService.canSeeSilentNotifications(player)) {
                 player.sendMessage(component);
             }
+        }
+        CommandSource console = server.getConsoleCommandSource();
+        if (console != null) {
+            console.sendMessage(component(messages.staff.voidBroadcastConsole, placeholders));
         }
     }
 
@@ -521,7 +556,7 @@ public final class MessageService {
                 : (messages.branding == null ? "Flux" : safeText(messages.branding.serverName));
         String discordInvite = userFacing
                 ? (messages.userBranding == null ? "dsc.gg/mcducky" : safeText(messages.userBranding.discord))
-                : (messages.branding == null ? "discord.gg/flux" : safeText(messages.branding.discord));
+            : (messages.branding == null ? "dsc.gg/mcducky" : safeText(messages.branding.discord));
         merged.putIfAbsent("server", serverName);
         merged.putIfAbsent("discord", discordInvite);
         return merged;
@@ -557,5 +592,12 @@ public final class MessageService {
             return "N/A";
         }
         return value;
+    }
+
+    private static String voidNote(String voided, String voidReason) {
+        if (!Boolean.parseBoolean(safeText(voided))) {
+            return "";
+        }
+        return ", void_reason=" + safeText(voidReason);
     }
 }

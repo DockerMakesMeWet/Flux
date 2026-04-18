@@ -17,14 +17,14 @@ public final class MessagesConfig {
     public PlayerMessages player = new PlayerMessages();
     public ScreenMessages screens = new ScreenMessages();
 
-    @ConfigSerializable
-    public static final class Branding {
-        @Setting("server-name")
-        public String serverName = "Flux";
+        @ConfigSerializable
+        public static final class Branding {
+                @Setting("server-name")
+                public String serverName = "Flux";
 
-        @Setting("discord")
-        public String discord = "discord.gg/flux";
-    }
+                @Setting("discord")
+                public String discord = "dsc.gg/mcducky";
+        }
 
     @ConfigSerializable
     public static final class UserBranding {
@@ -51,19 +51,27 @@ public final class MessagesConfig {
     public static final class StaffMessages {
         @Setting("action-broadcast")
         public String actionBroadcast =
-                "<gold><bold>STAFF</bold></gold> <gray>•</gray> <yellow><type></yellow> <white><target></white> <gray>by</gray> <white><executor></white> <dark_gray>[<id>]</dark_gray>";
+                "<gold><bold>STAFF</bold></gold> <gray>•</gray> <white><executor></white> <gray>issued</gray> <yellow><type></yellow> <gray>to</gray> <white><target></white> <dark_gray>[<id>]</dark_gray>";
 
         @Setting("action-broadcast-hover")
         public String actionBroadcastHover =
-                "<yellow><bold>Action Details</bold></yellow><newline><gray>ID:</gray> <white><id></white><newline><gray>Type:</gray> <white><type></white><newline><gray>Target:</gray> <white><target></white><newline><gray>Executor:</gray> <white><executor></white><newline><gray>Reason:</gray> <white><reason></white><newline><gold>Click to suggest /check <id></gold>";
+                "<yellow><bold>Moderation Action</bold></yellow><newline><gray>ID:</gray> <white><id></white><newline><gray>Type:</gray> <white><type></white><newline><gray>Target:</gray> <white><target></white><newline><gray>Executor:</gray> <white><executor></white><newline><gray>Reason:</gray> <white><reason></white><newline><gold>Click to suggest /check <id></gold>";
+
+        @Setting("action-broadcast-console")
+        public String actionBroadcastConsole =
+                "[Flux Moderation] <type> <target> by <executor> [<id>] reason=<reason>";
 
         @Setting("void-broadcast")
         public String voidBroadcast =
-                "<gold><bold>STAFF</bold></gold> <gray>•</gray> <white><executor></white> <red>voided</red> <yellow><target_id></yellow> <dark_gray>[<id>]</dark_gray>";
+                "<gold><bold>STAFF</bold></gold> <gray>•</gray> <white><executor></white> <gray>voided</gray> <yellow><target_id></yellow> <dark_gray>[<id>]</dark_gray>";
 
         @Setting("void-broadcast-hover")
         public String voidBroadcastHover =
-                "<yellow><bold>Void Details</bold></yellow><newline><gray>Void Action ID:</gray> <white><id></white><newline><gray>Target Action ID:</gray> <white><target_id></white><newline><gray>Executor:</gray> <white><executor></white><newline><gold>Click to suggest /check <target_id></gold>";
+                "<yellow><bold>Void Action</bold></yellow><newline><gray>Void Action ID:</gray> <white><id></white><newline><gray>Target Action ID:</gray> <white><target_id></white><newline><gray>Executor:</gray> <white><executor></white><newline><gray>Reason:</gray> <white><reason></white><newline><gold>Click to suggest /check <target_id></gold>";
+
+        @Setting("void-broadcast-console")
+        public String voidBroadcastConsole =
+                "[Flux Moderation] VOID <target_id> by <executor> [<id>] reason=<reason>";
     }
 
     @ConfigSerializable
@@ -175,16 +183,16 @@ public final class MessagesConfig {
         public String checkDetailExpires = "<gray>Expires:</gray> <white><expires></white>";
 
         @Setting("check-detail-status")
-        public String checkDetailStatus = "<gray>Active:</gray> <white><active></white> <gray>| Voided:</gray> <white><voided></white>";
+        public String checkDetailStatus = "<gray>Active:</gray> <white><active></white> <gray>| Voided:</gray> <white><voided></white> <gray>| Void Reason:</gray> <white><void_reason></white>";
 
         @Setting("check-detail-meta")
         public String checkDetailMeta = "<gray>IP Punishment:</gray> <white><ip_punishment></white> <gray>| Template:</gray> <white><template></white>";
 
         @Setting("check-summary-entry")
-        public String checkSummaryEntry = "<gray>-</gray> <white><id></white> <yellow><type></yellow> <gray><reason></gray> <dark_gray>(expires=<expires>)</dark_gray>";
+        public String checkSummaryEntry = "<gray>-</gray> <white><id></white> <yellow><type></yellow> <gray><reason></gray> <dark_gray>(expires=<expires><void_note>)</dark_gray>";
 
         @Setting("check-summary-entry-with-target")
-        public String checkSummaryEntryWithTarget = "<gray>-</gray> <white><id></white> <yellow><type></yellow> <gray><reason></gray> <dark_gray>(target=<target>, expires=<expires>)</dark_gray>";
+        public String checkSummaryEntryWithTarget = "<gray>-</gray> <white><id></white> <yellow><type></yellow> <gray><reason></gray> <dark_gray>(target=<target>, expires=<expires><void_note>)</dark_gray>";
 
         @Setting("checkplayer-header")
         public String checkPlayerHeader =
@@ -211,11 +219,11 @@ public final class MessagesConfig {
                 "<gray>===</gray> <yellow>End history of <white><target></white> (<count>)</yellow> <gray>===</gray>";
 
         @Setting("history-entry")
-        public String historyEntry = "<gray>•</gray> <white><id></white> <yellow><type></yellow> <gray>-</gray> <white><reason></white> <dark_gray>(voided=<voided>)</dark_gray>";
+        public String historyEntry = "<gray>•</gray> <white><id></white> <yellow><type></yellow> <gray>-</gray> <white><reason></white> <dark_gray>(voided=<voided><void_note>)</dark_gray>";
 
         @Setting("history-entry-hover")
         public String historyEntryHover =
-                "<yellow><bold>History Entry</bold></yellow><newline><gray>ID:</gray> <white><id></white><newline><gray>Type:</gray> <white><type></white><newline><gray>Reason:</gray> <white><reason></white><newline><gray>Voided:</gray> <white><voided></white><newline><gold>Click to suggest /check <id></gold>";
+                "<yellow><bold>History Entry</bold></yellow><newline><gray>ID:</gray> <white><id></white><newline><gray>Type:</gray> <white><type></white><newline><gray>Reason:</gray> <white><reason></white><newline><gray>Voided:</gray> <white><voided></white><newline><gray>Void Reason:</gray> <white><void_reason></white><newline><gold>Click to suggest /check <id></gold>";
 
         @Setting("alts-header")
         public String altsHeader = "<yellow>Accounts sharing IP <white><ip></white>:</yellow>";

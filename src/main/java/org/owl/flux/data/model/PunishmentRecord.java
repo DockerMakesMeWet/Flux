@@ -15,10 +15,46 @@ public record PunishmentRecord(
         Instant endTime,
         boolean active,
         boolean voided,
+        String voidReason,
         boolean issuedOffline,
         boolean joinNoticeDelivered,
         Map<String, String> metadata
 ) {
+    public PunishmentRecord(
+            String id,
+            PunishmentType type,
+            String targetUuid,
+            String targetIp,
+            String targetUsername,
+            String executorUuid,
+            String reason,
+            Instant startTime,
+            Instant endTime,
+            boolean active,
+            boolean voided,
+            boolean issuedOffline,
+            boolean joinNoticeDelivered,
+            Map<String, String> metadata
+    ) {
+        this(
+                id,
+                type,
+                targetUuid,
+                targetIp,
+                targetUsername,
+                executorUuid,
+                reason,
+                startTime,
+                endTime,
+                active,
+                voided,
+                null,
+                issuedOffline,
+                joinNoticeDelivered,
+                metadata
+        );
+    }
+
     public PunishmentRecord(
             String id,
             PunishmentType type,
@@ -32,6 +68,22 @@ public record PunishmentRecord(
             boolean voided,
             Map<String, String> metadata
     ) {
-        this(id, type, targetUuid, targetIp, null, executorUuid, reason, startTime, endTime, active, voided, false, false, metadata);
+        this(
+                id,
+                type,
+                targetUuid,
+                targetIp,
+                null,
+                executorUuid,
+                reason,
+                startTime,
+                endTime,
+                active,
+                voided,
+                null,
+                false,
+                false,
+                metadata
+        );
     }
 }

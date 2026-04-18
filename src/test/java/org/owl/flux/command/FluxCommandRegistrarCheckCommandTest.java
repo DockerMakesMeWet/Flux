@@ -83,6 +83,42 @@ class FluxCommandRegistrarCheckCommandTest {
     }
 
     @Test
+    void runCheckIncludesVoidReasonInStatusLineWhenVoided() throws Exception {
+        MessageService messageService = mock(MessageService.class);
+        PunishmentService punishmentService = mock(PunishmentService.class);
+        PlayerRepository playerRepository = mock(PlayerRepository.class);
+        FluxCommandRegistrar registrar = registrar(messageService, mock(TargetResolver.class), punishmentService,
+                mock(PunishmentRepository.class), playerRepository);
+        CommandSource source = mock(CommandSource.class);
+
+        PunishmentRecord record = new PunishmentRecord(
+                "AB125",
+                PunishmentType.BAN,
+                "target-uuid",
+                "203.0.113.12",
+                "TargetUser",
+                "executor-uuid",
+                "Test reason",
+                Instant.parse("2026-01-01T00:00:00Z"),
+                null,
+                false,
+                true,
+                "manual correction",
+                false,
+                false,
+                Map.of()
+        );
+        when(punishmentService.findById("AB125")).thenReturn(Optional.of(record));
+        when(punishmentService.isIpPunishment(record)).thenReturn(false);
+        when(playerRepository.findByUuid("executor-uuid"))
+                .thenReturn(Optional.of(new PlayerSnapshot("executor-uuid", "Moderator", "203.0.113.9")));
+
+        invoke(registrar, "runCheck", invocation(source, "ab125"));
+
+        verify(messageService).sendCheckDetailStatus(source, "false", "true", "manual correction");
+    }
+
+    @Test
     void runCheckUsesRecordedTargetUsernameWhenTargetUuidMissing() throws Exception {
         MessageService messageService = mock(MessageService.class);
         PunishmentService punishmentService = mock(PunishmentService.class);
@@ -198,8 +234,45 @@ class FluxCommandRegistrarCheckCommandTest {
 
         verify(punishmentRepository).historyByTarget(null, "NeverSeen");
         verify(messageService).sendHistoryHeader(source, "NeverSeen");
-        verify(messageService).sendHistoryEntry(source, "HI001", "BAN", "reason", "false");
+        verify(messageService).sendHistoryEntry(source, "HI001", "BAN", "reason", "false", null);
         verify(messageService).sendPaginationFooter(source, 1, 1, "/history NeverSeen");
+    }
+
+    @Test
+    void runHistoryIncludesVoidReasonWhenPresent() throws Exception {
+        MessageService messageService = mock(MessageService.class);
+        TargetResolver targetResolver = mock(TargetResolver.class);
+        PunishmentRepository punishmentRepository = mock(PunishmentRepository.class);
+        FluxCommandRegistrar registrar = registrar(messageService, targetResolver, mock(PunishmentService.class),
+                punishmentRepository, mock(PlayerRepository.class));
+        CommandSource source = mock(CommandSource.class);
+
+        PunishmentRecord voided = new PunishmentRecord(
+                "HI777",
+                PunishmentType.BAN,
+                null,
+                null,
+                "NeverSeen",
+                "executor-uuid",
+                "initial reason",
+                Instant.now(),
+                null,
+                false,
+                true,
+                "appeal accepted",
+                false,
+                false,
+                Map.of()
+        );
+
+        when(targetResolver.resolvePunishmentTarget("NeverSeen"))
+                .thenReturn(Optional.of(new TargetProfile(null, "NeverSeen", null, null)));
+        when(punishmentRepository.historyByTarget(null, "NeverSeen"))
+                .thenReturn(List.of(voided));
+
+        invoke(registrar, "runHistory", invocation(source, "NeverSeen"));
+
+        verify(messageService).sendHistoryEntry(source, "HI777", "BAN", "initial reason", "true", "appeal accepted");
     }
 
     @Test

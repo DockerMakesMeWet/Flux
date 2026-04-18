@@ -57,9 +57,10 @@ public final class PunishmentRepository {
                 }
                 statement.setBoolean(10, punishment.active());
                 statement.setBoolean(11, punishment.voided());
-                statement.setBoolean(12, punishment.issuedOffline());
-                statement.setBoolean(13, punishment.joinNoticeDelivered());
-                statement.setString(14, JsonMetadata.write(punishment.metadata()));
+                statement.setString(12, punishment.voidReason());
+                statement.setBoolean(13, punishment.issuedOffline());
+                statement.setBoolean(14, punishment.joinNoticeDelivered());
+                statement.setString(15, JsonMetadata.write(punishment.metadata()));
                 statement.executeUpdate();
             }
         } catch (SQLException exception) {
@@ -406,11 +407,12 @@ public final class PunishmentRepository {
         }
     }
 
-    public boolean voidById(String id) {
+    public boolean voidById(String id, String voidReason) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(
-                     "UPDATE punishments SET active = FALSE, voided = TRUE WHERE id = ?")) {
-            statement.setString(1, id);
+                     "UPDATE punishments SET active = FALSE, voided = TRUE, void_reason = ? WHERE id = ?")) {
+            statement.setString(1, normalizeOptionalText(voidReason));
+            statement.setString(2, id);
             return statement.executeUpdate() > 0;
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to void punishment.", exception);
@@ -524,8 +526,8 @@ public final class PunishmentRepository {
         String metadataValue = isPostgreSql ? "?::jsonb" : "?";
         return """
                 INSERT INTO punishments (
-                    id, type, target_uuid, target_ip, target_username, executor_uuid, reason, start_time, end_time, active, voided, issued_offline, join_notice_delivered, metadata
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, %s)
+                    id, type, target_uuid, target_ip, target_username, executor_uuid, reason, start_time, end_time, active, voided, void_reason, issued_offline, join_notice_delivered, metadata
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, %s)
                 """.formatted(metadataValue);
     }
 
@@ -560,9 +562,17 @@ public final class PunishmentRepository {
                 endTimestamp == null ? null : endTimestamp.toInstant(),
                 resultSet.getBoolean("active"),
                 resultSet.getBoolean("voided"),
+                resultSet.getString("void_reason"),
                 resultSet.getBoolean("issued_offline"),
                 resultSet.getBoolean("join_notice_delivered"),
                 JsonMetadata.read(resultSet.getString("metadata"))
         );
+    }
+
+    private static String normalizeOptionalText(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value;
     }
 }

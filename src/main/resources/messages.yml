@@ -8,7 +8,7 @@
 #   - You can use colors/tags like: <red> <yellow> <bold> <gray> <newline> <gradient:#hex:#hex>
 #
 # Placeholder reference by key:
-#   <server> <discord> <id> <type> <target> <executor> <reason> <voided> <ip> <seen>
+#   <server> <discord> <id> <type> <target> <executor> <reason> <voided> <void_reason> <void_note> <ip> <seen>
 #   <version> <player> <username> <target_id> <count> <label> <verb> <id_warning>
 #   <expires_at> <time_left>
 #   <time_left> <expires_at>
@@ -29,7 +29,7 @@ branding:
 
   # Public support/appeal Discord invite.
   # Placeholders: <discord>
-  discord: "discord.gg/flux"
+  discord: "dsc.gg/mcducky"
 
 user-branding:
   # Display name for user-facing messages/screens.
@@ -56,19 +56,27 @@ errors:
 staff:
   # Silent/staff broadcast for new actions.
   # Placeholders: <id> <executor> <target> <type> <reason>
-  action-broadcast: "<gold><bold>STAFF</bold></gold> <gray>•</gray> <yellow><type></yellow> <white><target></white> <gray>by</gray> <white><executor></white> <dark_gray>[<id>]</dark_gray>"
+  action-broadcast: "<gold><bold>STAFF</bold></gold> <gray>•</gray> <white><executor></white> <gray>issued</gray> <yellow><type></yellow> <gray>to</gray> <white><target></white> <dark_gray>[<id>]</dark_gray>"
 
   # Hover details for action broadcast.
   # Placeholders: <id> <executor> <target> <type> <reason>
-  action-broadcast-hover: "<yellow><bold>Action Details</bold></yellow><newline><gray>ID:</gray> <white><id></white><newline><gray>Type:</gray> <white><type></white><newline><gray>Target:</gray> <white><target></white><newline><gray>Executor:</gray> <white><executor></white><newline><gray>Reason:</gray> <white><reason></white><newline><gold>Click to suggest /check <id></gold>"
+  action-broadcast-hover: "<yellow><bold>Moderation Action</bold></yellow><newline><gray>ID:</gray> <white><id></white><newline><gray>Type:</gray> <white><type></white><newline><gray>Target:</gray> <white><target></white><newline><gray>Executor:</gray> <white><executor></white><newline><gray>Reason:</gray> <white><reason></white><newline><gold>Click to suggest /check <id></gold>"
+
+  # Console broadcast line for new actions.
+  # Placeholders: <id> <executor> <target> <type> <reason>
+  action-broadcast-console: "[Flux Moderation] <type> <target> by <executor> [<id>] reason=<reason>"
 
   # Silent/staff broadcast for voided actions.
-  # Placeholders: <id> <executor> <target_id>
-  void-broadcast: "<gold><bold>STAFF</bold></gold> <gray>•</gray> <white><executor></white> <red>voided</red> <yellow><target_id></yellow> <dark_gray>[<id>]</dark_gray>"
+  # Placeholders: <id> <executor> <target_id> <reason>
+  void-broadcast: "<gold><bold>STAFF</bold></gold> <gray>•</gray> <white><executor></white> <gray>voided</gray> <yellow><target_id></yellow> <dark_gray>[<id>]</dark_gray>"
 
   # Hover details for voided-action broadcast.
-  # Placeholders: <id> <executor> <target_id>
-  void-broadcast-hover: "<yellow><bold>Void Details</bold></yellow><newline><gray>Void ID:</gray> <white><id></white><newline><gray>Target ID:</gray> <white><target_id></white><newline><gray>Executor:</gray> <white><executor></white><newline><gold>Click to suggest /check <target_id></gold>"
+  # Placeholders: <id> <executor> <target_id> <reason>
+  void-broadcast-hover: "<yellow><bold>Void Action</bold></yellow><newline><gray>Void ID:</gray> <white><id></white><newline><gray>Target ID:</gray> <white><target_id></white><newline><gray>Executor:</gray> <white><executor></white><newline><gray>Reason:</gray> <white><reason></white><newline><gold>Click to suggest /check <target_id></gold>"
+
+  # Console broadcast line for voided actions.
+  # Placeholders: <id> <executor> <target_id> <reason>
+  void-broadcast-console: "[Flux Moderation] VOID <target_id> by <executor> [<id>] reason=<reason>"
 
 commands:
   # Wrapper used when showing command usage text.
@@ -129,7 +137,7 @@ commands:
   check-footer: "<gray>===</gray> <yellow>End check for <white><id></white></yellow> <gray>===</gray>"
 
   # Detailed /check lines.
-  # Placeholders: <type> <target> <ip> <issuer> <reason> <started> <duration> <expires> <active> <voided> <ip_punishment> <template>
+  # Placeholders: <type> <target> <ip> <issuer> <reason> <started> <duration> <expires> <active> <voided> <void_reason> <ip_punishment> <template>
   check-detail-type: "<gray>Type:</gray> <white><type></white>"
   check-detail-target: "<gray>Target:</gray> <white><target></white> <dark_gray>(ip=<ip>)</dark_gray>"
   check-detail-issuer: "<gray>Issuer:</gray> <white><issuer></white>"
@@ -137,13 +145,13 @@ commands:
   check-detail-started: "<gray>Started:</gray> <white><started></white>"
   check-detail-duration: "<gray>Duration:</gray> <white><duration></white>"
   check-detail-expires: "<gray>Expires:</gray> <white><expires></white>"
-  check-detail-status: "<gray>Active:</gray> <white><active></white> <gray>| Voided:</gray> <white><voided></white>"
+  check-detail-status: "<gray>Active:</gray> <white><active></white> <gray>| Voided:</gray> <white><voided></white> <gray>| Void Reason:</gray> <white><void_reason></white>"
   check-detail-meta: "<gray>IP Punishment:</gray> <white><ip_punishment></white> <gray>| Template:</gray> <white><template></white>"
 
   # Summary list entries used by /checkplayer and /checkip.
-  # Placeholders: <id> <type> <reason> <expires> <target>
-  check-summary-entry: "<gray>-</gray> <white><id></white> <yellow><type></yellow> <gray><reason></gray> <dark_gray>(expires=<expires>)</dark_gray>"
-  check-summary-entry-with-target: "<gray>-</gray> <white><id></white> <yellow><type></yellow> <gray><reason></gray> <dark_gray>(target=<target>, expires=<expires>)</dark_gray>"
+  # Placeholders: <id> <type> <reason> <expires> <target> <voided> <void_reason> <void_note>
+  check-summary-entry: "<gray>-</gray> <white><id></white> <yellow><type></yellow> <gray><reason></gray> <dark_gray>(expires=<expires><void_note>)</dark_gray>"
+  check-summary-entry-with-target: "<gray>-</gray> <white><id></white> <yellow><type></yellow> <gray><reason></gray> <dark_gray>(target=<target>, expires=<expires><void_note>)</dark_gray>"
 
   # Header for /checkplayer output.
   # Placeholders: <target>
@@ -170,12 +178,12 @@ commands:
   history-footer: "<gray>===</gray> <yellow>End history of <white><target></white> (<count>)</yellow> <gray>===</gray>"
 
   # Entry line for history output.
-  # Placeholders: <id> <type> <reason> <voided>
-  history-entry: "<gray>•</gray> <white><id></white> <yellow><type></yellow> <gray>-</gray> <white><reason></white> <dark_gray>(voided=<voided>)</dark_gray>"
+  # Placeholders: <id> <type> <reason> <voided> <void_reason> <void_note>
+  history-entry: "<gray>•</gray> <white><id></white> <yellow><type></yellow> <gray>-</gray> <white><reason></white> <dark_gray>(voided=<voided><void_note>)</dark_gray>"
 
   # Hover details for history entries.
-  # Placeholders: <id> <type> <reason> <voided>
-  history-entry-hover: "<yellow><bold>History Entry</bold></yellow><newline><gray>ID:</gray> <white><id></white><newline><gray>Type:</gray> <white><type></white><newline><gray>Reason:</gray> <white><reason></white><newline><gray>Voided:</gray> <white><voided></white><newline><gold>Click to suggest /check <id></gold>"
+  # Placeholders: <id> <type> <reason> <voided> <void_reason>
+  history-entry-hover: "<yellow><bold>History Entry</bold></yellow><newline><gray>ID:</gray> <white><id></white><newline><gray>Type:</gray> <white><type></white><newline><gray>Reason:</gray> <white><reason></white><newline><gray>Voided:</gray> <white><voided></white><newline><gray>Void Reason:</gray> <white><void_reason></white><newline><gold>Click to suggest /check <id></gold>"
 
   # Header for alternate-account output.
   # Placeholders: <ip>

@@ -2,11 +2,14 @@ package org.owl.flux.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.velocitypowered.api.command.CommandSource;
+import com.velocitypowered.api.proxy.ConsoleCommandSource;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import java.time.Clock;
@@ -245,6 +248,78 @@ class MessageServiceTest {
 
         assertTrue(rendered.contains("Time left: Permanent"));
         assertTrue(rendered.contains("Expires at: Never"));
+    }
+
+    @Test
+    void broadcastStaffActionSendsConsoleMirrorAndOnlyNotifiesAuthorizedPlayers() {
+        ProxyServer server = mock(ProxyServer.class);
+        Player authorized = mock(Player.class);
+        Player unauthorized = mock(Player.class);
+        ConsoleCommandSource console = mock(ConsoleCommandSource.class);
+        when(server.getAllPlayers()).thenReturn(List.of(authorized, unauthorized));
+        when(server.getConsoleCommandSource()).thenReturn(console);
+
+        PermissionService permissionService = mock(PermissionService.class);
+        when(permissionService.canSeeSilentNotifications(authorized)).thenReturn(true);
+        when(permissionService.canSeeSilentNotifications(unauthorized)).thenReturn(false);
+
+        MessageService service = new MessageService(
+                server,
+                new MessagesConfig(),
+                permissionService,
+                mock(MastersService.class),
+                Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"), ZoneOffset.UTC)
+        );
+
+        PunishmentRecord record = new PunishmentRecord(
+                "BA4321",
+                PunishmentType.BAN,
+                "uuid-1",
+                "198.51.100.20",
+                "TargetUser",
+                "executor-uuid",
+                "repeat abuse",
+                Instant.parse("2026-01-01T00:00:00Z"),
+                null,
+                true,
+                false,
+                false,
+                false,
+                Map.of()
+        );
+
+        service.broadcastStaffAction(record, "ModUser", "TargetUser", null);
+
+        verify(authorized).sendMessage(any(Component.class));
+        verify(unauthorized, never()).sendMessage(any(Component.class));
+        verify(console).sendMessage(any(Component.class));
+    }
+
+    @Test
+    void broadcastVoidSendsReasonToConsoleOutput() {
+        ProxyServer server = mock(ProxyServer.class);
+        Player authorized = mock(Player.class);
+        ConsoleCommandSource console = mock(ConsoleCommandSource.class);
+        when(server.getAllPlayers()).thenReturn(List.of(authorized));
+        when(server.getConsoleCommandSource()).thenReturn(console);
+
+        PermissionService permissionService = mock(PermissionService.class);
+        when(permissionService.canSeeSilentNotifications(authorized)).thenReturn(true);
+
+        MessageService service = new MessageService(
+                server,
+                new MessagesConfig(),
+                permissionService,
+                mock(MastersService.class),
+                Clock.fixed(Instant.parse("2026-01-01T00:00:00Z"), ZoneOffset.UTC)
+        );
+
+        service.broadcastVoid("VO9001", "AB1234", "ModUser", "manual review");
+
+        ArgumentCaptor<Component> captor = ArgumentCaptor.forClass(Component.class);
+        verify(console).sendMessage(captor.capture());
+        String rendered = plain(captor.getValue());
+        assertTrue(rendered.contains("VOID AB1234 by ModUser [VO9001] reason=manual review"));
     }
 
     private static MessageService createService() {

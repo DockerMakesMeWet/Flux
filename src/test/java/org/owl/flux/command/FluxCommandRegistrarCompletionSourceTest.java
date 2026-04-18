@@ -152,6 +152,30 @@ class FluxCommandRegistrarCompletionSourceTest {
     }
 
     @Test
+    void suggestPunishmentCommandsFilterTemplatesByPunishmentType() throws Exception {
+        ProxyServer server = mock(ProxyServer.class);
+        List<Player> onlinePlayers = List.of(player("Alpha"));
+        when(server.getAllPlayers()).thenReturn(onlinePlayers);
+        PermissionService permissionService = mock(PermissionService.class);
+        TemplateService templateService = mock(TemplateService.class);
+        CommandSource source = mock(CommandSource.class);
+
+        Map<String, TemplatesConfig.TemplateDefinition> templates = new LinkedHashMap<>();
+        templates.put("griefing", template("flux.template.griefing", "BAN"));
+        templates.put("chat-spam", template("flux.template.chat-spam", "MUTE"));
+        templates.put("abuse", template("flux.template.abuse", "WARN"));
+        when(templateService.allTemplates()).thenReturn(templates);
+        when(permissionService.has(source, "flux.template.*")).thenReturn(true);
+
+        FluxCommandRegistrar registrar = registrar(server, mock(PlayerRepository.class), permissionService, templateService);
+
+        assertEquals(List.of("#griefing"), invokeSuggestionMethod(registrar, "suggestBanLike", invocation(source, "Alpha", "1d", "#")));
+        assertEquals(List.of("#chat-spam"), invokeSuggestionMethod(registrar, "suggestMuteLike", invocation(source, "Alpha", "1d", "#")));
+        assertEquals(List.of("#abuse"), invokeSuggestionMethod(registrar, "suggestWarnLike", invocation(source, "Alpha", "#")));
+        assertEquals(List.of("#griefing"), invokeSuggestionMethod(registrar, "suggestIpBan", invocation(source, "Alpha", "1d", "#")));
+    }
+
+    @Test
     void suggestIpBanAllowsIpLikeTargetInputWithoutForcingUsernameSuggestions() throws Exception {
         ProxyServer server = mock(ProxyServer.class);
         List<Player> onlinePlayers = List.of(player("Alpha"), player("Beta"));
@@ -372,8 +396,13 @@ class FluxCommandRegistrarCompletionSourceTest {
     }
 
     private static TemplatesConfig.TemplateDefinition template(String permission) {
+        return template(permission, "BAN");
+    }
+
+    private static TemplatesConfig.TemplateDefinition template(String permission, String type) {
         TemplatesConfig.TemplateDefinition definition = new TemplatesConfig.TemplateDefinition();
         definition.permission = permission;
+        definition.type = type;
         return definition;
     }
 

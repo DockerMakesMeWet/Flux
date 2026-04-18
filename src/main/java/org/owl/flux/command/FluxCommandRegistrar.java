@@ -475,7 +475,7 @@ public final class FluxCommandRegistrar {
             messageService.sendActionNotFound(invocation.source());
             return;
         }
-        if (!punishmentService.voidAction(targetId)) {
+        if (!punishmentService.voidAction(targetId, reason)) {
             messageService.sendActionNotFound(invocation.source());
             return;
         }
@@ -491,7 +491,7 @@ public final class FluxCommandRegistrar {
         punishmentService.sendVoidWebhook(targetId, invocation.source(), punishmentService.isIpPunishment(record.get()), reason);
         punishmentService.notifyPlayerWarnRemoved(record.get());
         messageService.sendVoidUpdated(invocation.source(), targetId);
-        messageService.broadcastVoid(targetId, targetId, executorName);
+        messageService.broadcastVoid(targetId, targetId, executorName, reason);
     }
 
     private List<String> suggestVoid(SimpleCommand.Invocation invocation) {
@@ -658,7 +658,8 @@ public final class FluxCommandRegistrar {
                     punishment.id(),
                     punishment.type().name(),
                     punishment.reason(),
-                    Boolean.toString(punishment.voided())
+                    Boolean.toString(punishment.voided()),
+                    punishment.voidReason()
             );
         }
         messageService.sendPaginationFooter(
@@ -833,23 +834,23 @@ public final class FluxCommandRegistrar {
     }
 
     private List<String> suggestBanLike(SimpleCommand.Invocation invocation) {
-        return suggestPunishmentCommand(invocation, true, false);
+        return suggestPunishmentCommand(invocation, true, false, PunishmentType.BAN);
     }
 
     private List<String> suggestMuteLike(SimpleCommand.Invocation invocation) {
-        return suggestPunishmentCommand(invocation, true, false);
+        return suggestPunishmentCommand(invocation, true, false, PunishmentType.MUTE);
     }
 
     private List<String> suggestWarnLike(SimpleCommand.Invocation invocation) {
-        return suggestPunishmentCommand(invocation, false, false);
+        return suggestPunishmentCommand(invocation, false, false, PunishmentType.WARN);
     }
 
     private List<String> suggestKickLike(SimpleCommand.Invocation invocation) {
-        return suggestPunishmentCommand(invocation, false, false);
+        return suggestPunishmentCommand(invocation, false, false, PunishmentType.KICK);
     }
 
     private List<String> suggestIpBan(SimpleCommand.Invocation invocation) {
-        return suggestPunishmentCommand(invocation, true, true);
+        return suggestPunishmentCommand(invocation, true, true, PunishmentType.BAN);
     }
 
     private List<String> suggestUnban(SimpleCommand.Invocation invocation) {
@@ -921,19 +922,20 @@ public final class FluxCommandRegistrar {
     private List<String> suggestPunishmentCommand(
             SimpleCommand.Invocation invocation,
             boolean allowDuration,
-            boolean allowIpLikeTarget
+            boolean allowIpLikeTarget,
+            PunishmentType templateType
     ) {
         CommandSuggester targetSource = allowIpLikeTarget
                 ? usernameOrIpTargetCompletionSource(0)
                 : onlineUsernameCompletionSource(0);
         CommandSuggester payloadStartSource = allowDuration
-                ? mergeCompletionSources(durationTokenCompletionSource(1), templateCompletionSource(1))
-                : templateCompletionSource(1);
+            ? mergeCompletionSources(durationTokenCompletionSource(1), templateCompletionSource(1, templateType))
+            : templateCompletionSource(1, templateType);
         CommandSuggester payloadAfterDurationSource = invocationCandidate -> {
             if (!allowDuration || !DurationParser.isDurationToken(tokenAt(invocationCandidate, 1))) {
                 return List.of();
             }
-            return suggestTemplates(invocationCandidate, 2);
+            return suggestTemplates(invocationCandidate, 2, templateType);
         };
         return argumentPositionCompletionFramework(
                 invocation,
@@ -1001,7 +1003,11 @@ public final class FluxCommandRegistrar {
     }
 
     private CommandSuggester templateCompletionSource(int argumentIndex) {
-        return invocation -> suggestTemplates(invocation, argumentIndex);
+        return templateCompletionSource(argumentIndex, null);
+    }
+
+    private CommandSuggester templateCompletionSource(int argumentIndex, PunishmentType typeFilter) {
+        return invocation -> suggestTemplates(invocation, argumentIndex, typeFilter);
     }
 
     private CommandSuggester punishmentIdCompletionSource(PunishmentType type, int argumentIndex) {
@@ -1013,14 +1019,26 @@ public final class FluxCommandRegistrar {
     }
 
     private List<String> suggestTemplates(SimpleCommand.Invocation invocation, int argumentIndex) {
-        return suggestTemplatesByPrefix(invocation.source(), tokenAt(invocation, argumentIndex));
+        return suggestTemplates(invocation, argumentIndex, null);
+    }
+
+    private List<String> suggestTemplates(SimpleCommand.Invocation invocation, int argumentIndex, PunishmentType typeFilter) {
+        return suggestTemplatesByPrefix(invocation.source(), tokenAt(invocation, argumentIndex), typeFilter);
     }
 
     private List<String> suggestTemplatesByPrefix(CommandSource source, String prefix) {
-        return completeByPrefix(templateSuggestions(source), prefix);
+        return suggestTemplatesByPrefix(source, prefix, null);
+    }
+
+    private List<String> suggestTemplatesByPrefix(CommandSource source, String prefix, PunishmentType typeFilter) {
+        return completeByPrefix(templateSuggestions(source, typeFilter), prefix);
     }
 
     private List<String> templateSuggestions(CommandSource source) {
+        return templateSuggestions(source, null);
+    }
+
+    private List<String> templateSuggestions(CommandSource source, PunishmentType typeFilter) {
         Map<String, TemplatesConfig.TemplateDefinition> templates = templateService.allTemplates();
         if (templates == null || templates.isEmpty()) {
             return List.of();
@@ -1029,6 +1047,13 @@ public final class FluxCommandRegistrar {
         boolean hasWildcardTemplatePermission = permissionService.has(source, "flux.template.*");
         List<String> suggestions = new ArrayList<>();
         for (Map.Entry<String, TemplatesConfig.TemplateDefinition> entry : templates.entrySet()) {
+            PunishmentType templateType = templatePunishmentType(entry.getValue());
+            if (templateType == null) {
+                continue;
+            }
+            if (typeFilter != null && templateType != typeFilter) {
+                continue;
+            }
             String templateName = normalizeToken(entry.getKey());
             if (templateName.isEmpty()) {
                 continue;
@@ -1039,6 +1064,21 @@ public final class FluxCommandRegistrar {
             suggestions.add("#" + templateName);
         }
         return suggestions;
+    }
+
+    private static PunishmentType templatePunishmentType(TemplatesConfig.TemplateDefinition definition) {
+        if (definition == null) {
+            return null;
+        }
+        String typeValue = normalizeToken(definition.type);
+        if (typeValue.isEmpty()) {
+            return null;
+        }
+        try {
+            return PunishmentType.valueOf(typeValue.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
     }
 
     private boolean hasTemplatePermission(CommandSource source, TemplatesConfig.TemplateDefinition definition) {
@@ -1302,14 +1342,27 @@ public final class FluxCommandRegistrar {
         messageService.sendCheckDetailStarted(source, PunishmentTimeFormatter.formatTimestamp(punishment.startTime()));
         messageService.sendCheckDetailDuration(source, duration);
         messageService.sendCheckDetailExpires(source, expires);
-        messageService.sendCheckDetailStatus(source, Boolean.toString(punishment.active()), Boolean.toString(punishment.voided()));
+        messageService.sendCheckDetailStatus(
+                source,
+                Boolean.toString(punishment.active()),
+                Boolean.toString(punishment.voided()),
+                punishment.voidReason()
+        );
         messageService.sendCheckDetailMeta(source, Boolean.toString(punishmentService.isIpPunishment(punishment)), template);
     }
 
     private void sendPunishmentSummary(CommandSource source, PunishmentRecord punishment, boolean includeTarget) {
         String expires = PunishmentTimeFormatter.formatExpiry(punishment.endTime());
         if (!includeTarget) {
-            messageService.sendCheckSummaryEntry(source, punishment.id(), punishment.type().name(), punishment.reason(), expires);
+            messageService.sendCheckSummaryEntry(
+                    source,
+                    punishment.id(),
+                    punishment.type().name(),
+                    punishment.reason(),
+                    expires,
+                    Boolean.toString(punishment.voided()),
+                    punishment.voidReason()
+            );
             return;
         }
 
@@ -1317,7 +1370,16 @@ public final class FluxCommandRegistrar {
         if (target == null || target.isBlank()) {
             target = "N/A";
         }
-        messageService.sendCheckSummaryEntryWithTarget(source, punishment.id(), punishment.type().name(), punishment.reason(), target, expires);
+        messageService.sendCheckSummaryEntryWithTarget(
+                source,
+                punishment.id(),
+                punishment.type().name(),
+                punishment.reason(),
+                target,
+                expires,
+                Boolean.toString(punishment.voided()),
+                punishment.voidReason()
+        );
     }
 
     private Optional<String> resolveUsername(String uuid) {

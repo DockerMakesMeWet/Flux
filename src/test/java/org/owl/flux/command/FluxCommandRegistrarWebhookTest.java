@@ -258,12 +258,13 @@ class FluxCommandRegistrarWebhookTest {
         PunishmentService punishmentService = mock(PunishmentService.class);
         PunishmentRecord record = punishment("ABC123", Map.of("ip_punishment", "true"));
         when(punishmentService.findById("ABC123")).thenReturn(Optional.of(record));
-        when(punishmentService.voidAction("ABC123")).thenReturn(true);
+        when(punishmentService.voidAction("ABC123", "invalid action")).thenReturn(true);
         when(punishmentService.isIpPunishment(record)).thenReturn(true);
 
         FluxCommandRegistrar registrar = registrar(mock(TargetResolver.class), punishmentService);
         invoke(registrar, "runVoid", invocation);
 
+        verify(punishmentService).voidAction("ABC123", "invalid action");
         verify(punishmentService).sendVoidWebhook("ABC123", source, true, "invalid action");
         verify(punishmentService).auditReversalAction(ModerationActionType.VOID, "ABC123", "ABC123", source, "invalid action");
     }
@@ -278,12 +279,13 @@ class FluxCommandRegistrarWebhookTest {
         PunishmentService punishmentService = mock(PunishmentService.class);
         PunishmentRecord record = punishment("WA1234", PunishmentType.WARN, "TargetUser", Map.of());
         when(punishmentService.findById("WA1234")).thenReturn(Optional.of(record));
-        when(punishmentService.voidAction("WA1234")).thenReturn(true);
+        when(punishmentService.voidAction("WA1234", "legacy warning")).thenReturn(true);
         when(punishmentService.isIpPunishment(record)).thenReturn(false);
 
         FluxCommandRegistrar registrar = registrar(mock(TargetResolver.class), punishmentService);
         invoke(registrar, "runVoid", invocation);
 
+        verify(punishmentService).voidAction("WA1234", "legacy warning");
         verify(punishmentService).notifyPlayerWarnRemoved(record);
     }
 

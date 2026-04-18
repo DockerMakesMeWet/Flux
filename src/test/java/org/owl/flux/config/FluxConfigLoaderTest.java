@@ -71,7 +71,7 @@ class FluxConfigLoaderTest {
         ConfigurationBundle bundle = loader.load();
 
         assertEquals("Flux", bundle.messages().branding.serverName);
-        assertEquals("discord.gg/flux", bundle.messages().branding.discord);
+        assertEquals("dsc.gg/mcducky", bundle.messages().branding.discord);
         assertEquals("DuckyMC", bundle.messages().userBranding.serverName);
         assertEquals("dsc.gg/mcducky", bundle.messages().userBranding.discord);
         assertEquals("<gradient:#f7d74b:#ffd86b><bold><server></bold></gradient> <gray>»</gray> ", bundle.messages().userPrefix);
@@ -100,7 +100,7 @@ class FluxConfigLoaderTest {
                 bundle.messages().player.offlineJoinEntry
         );
         assertEquals(
-                "<yellow><bold>Action Details</bold></yellow><newline><gray>ID:</gray> <white><id></white><newline><gray>Type:</gray> <white><type></white><newline><gray>Target:</gray> <white><target></white><newline><gray>Executor:</gray> <white><executor></white><newline><gray>Reason:</gray> <white><reason></white><newline><gold>Click to suggest /check <id></gold>",
+          "<yellow><bold>Moderation Action</bold></yellow><newline><gray>ID:</gray> <white><id></white><newline><gray>Type:</gray> <white><type></white><newline><gray>Target:</gray> <white><target></white><newline><gray>Executor:</gray> <white><executor></white><newline><gray>Reason:</gray> <white><reason></white><newline><gold>Click to suggest /check <id></gold>",
                 bundle.messages().staff.actionBroadcastHover
         );
     }

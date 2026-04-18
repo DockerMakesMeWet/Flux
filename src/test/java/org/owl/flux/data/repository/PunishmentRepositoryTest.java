@@ -129,7 +129,7 @@ class PunishmentRepositoryTest {
     @Test
     void insertSqlForDatabaseProductUsesStandardPlaceholderForH2() {
         String sql = PunishmentRepository.insertSqlForDatabaseProduct("H2");
-        assertTrue(sql.contains("?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"));
+        assertTrue(sql.contains("?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"));
         assertTrue(!sql.contains("?::jsonb"));
     }
 
@@ -232,6 +232,7 @@ class PunishmentRepositoryTest {
         assertPunishmentColumnExists("JOIN_NOTICE_DELIVERED");
         assertPunishmentColumnExists("MUTE_EXPIRY_NOTICE_PENDING");
         assertPunishmentColumnExists("MUTE_EXPIRY_NOTICE_DELIVERED");
+        assertPunishmentColumnExists("VOID_REASON");
 
         PunishmentRecord migrated = punishmentRepository.findById("LG0001").orElseThrow();
         assertNull(migrated.targetUsername());
@@ -317,6 +318,34 @@ class PunishmentRepositoryTest {
 
         List<PunishmentRecord> active = punishmentRepository.activeByIp("198.51.100.10");
         assertEquals(List.of("AB0010"), active.stream().map(PunishmentRecord::id).toList());
+    }
+
+    @Test
+    void voidByIdStoresVoidReasonAndMarksPunishmentInactive() {
+        punishmentRepository.save(new PunishmentRecord(
+                "VB1001",
+                PunishmentType.BAN,
+                null,
+                "198.51.100.50",
+                null,
+                "00000000-0000-0000-0000-000000000000",
+                "initial reason",
+                Instant.now(),
+                null,
+                true,
+                false,
+                false,
+                false,
+                Map.of()
+        ));
+
+        boolean changed = punishmentRepository.voidById("VB1001", "appeal accepted");
+
+        assertTrue(changed);
+        PunishmentRecord updated = punishmentRepository.findById("VB1001").orElseThrow();
+        assertFalse(updated.active());
+        assertTrue(updated.voided());
+        assertEquals("appeal accepted", updated.voidReason());
     }
 
     @Test

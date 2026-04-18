@@ -46,6 +46,7 @@ public final class SchemaManager {
                       end_time TIMESTAMP NULL,
                       active BOOLEAN NOT NULL,
                       voided BOOLEAN NOT NULL DEFAULT FALSE,
+                      void_reason TEXT,
                       issued_offline BOOLEAN NOT NULL DEFAULT FALSE,
                       join_notice_delivered BOOLEAN NOT NULL DEFAULT FALSE,
                       mute_expiry_notice_pending BOOLEAN NOT NULL DEFAULT FALSE,
@@ -58,6 +59,7 @@ public final class SchemaManager {
             statement.execute("ALTER TABLE punishments ADD COLUMN IF NOT EXISTS join_notice_delivered BOOLEAN NOT NULL DEFAULT FALSE");
             statement.execute("ALTER TABLE punishments ADD COLUMN IF NOT EXISTS mute_expiry_notice_pending BOOLEAN NOT NULL DEFAULT FALSE");
             statement.execute("ALTER TABLE punishments ADD COLUMN IF NOT EXISTS mute_expiry_notice_delivered BOOLEAN NOT NULL DEFAULT FALSE");
+            statement.execute("ALTER TABLE punishments ADD COLUMN IF NOT EXISTS void_reason TEXT");
 
             statement.execute("""
                     CREATE TABLE IF NOT EXISTS moderation_actions (

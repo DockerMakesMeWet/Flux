@@ -145,8 +145,8 @@ public final class PunishmentService {
         return punishmentRepository.deactivateActiveById(id, PunishmentType.MUTE);
     }
 
-    public boolean voidAction(String id) {
-        return punishmentRepository.voidById(id);
+    public boolean voidAction(String id, String reason) {
+        return punishmentRepository.voidById(id, reason);
     }
 
     public Optional<PunishmentRecord> findById(String id) {
