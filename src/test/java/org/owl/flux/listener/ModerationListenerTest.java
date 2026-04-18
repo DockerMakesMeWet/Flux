@@ -1,12 +1,14 @@
 package org.owl.flux.listener;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.velocitypowered.api.event.command.CommandExecuteEvent;
 import com.velocitypowered.api.event.player.PlayerChatEvent;
 import com.velocitypowered.api.proxy.Player;
 import java.time.Instant;
@@ -14,6 +16,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import net.kyori.adventure.text.Component;
+import org.owl.flux.config.model.MutedCommandsConfig;
 import org.junit.jupiter.api.Test;
 import org.owl.flux.data.model.PunishmentRecord;
 import org.owl.flux.data.model.PunishmentType;
@@ -37,7 +40,8 @@ class ModerationListenerTest {
                 punishmentService,
                 permissionService,
                 mastersService,
-                messageService
+                messageService,
+                new MutedCommandsConfig()
         );
 
         Player player = mock(Player.class);
@@ -94,7 +98,8 @@ class ModerationListenerTest {
                 punishmentService,
                 permissionService,
                 mastersService,
-                messageService
+                messageService,
+                new MutedCommandsConfig()
         );
 
         Player player = mock(Player.class);
@@ -116,5 +121,93 @@ class ModerationListenerTest {
         verify(event, never()).setResult(any(PlayerChatEvent.ChatResult.class));
         verify(messageService, never()).mutedMessage(any(PunishmentRecord.class));
         verify(player, never()).sendMessage(any(Component.class));
+    }
+
+    @Test
+    void onCommandExecuteBlocksConfiguredMutedCommand() {
+        PunishmentService punishmentService = mock(PunishmentService.class);
+        PermissionService permissionService = mock(PermissionService.class);
+        MastersService mastersService = mock(MastersService.class);
+        MessageService messageService = mock(MessageService.class);
+        ModerationListener listener = new ModerationListener(
+                mock(PlayerRepository.class),
+                punishmentService,
+                permissionService,
+                mastersService,
+                messageService,
+                new MutedCommandsConfig()
+        );
+
+        Player player = mock(Player.class);
+        UUID uuid = UUID.fromString("00000000-0000-0000-0000-000000000779");
+        when(player.getUniqueId()).thenReturn(uuid);
+        when(player.getUsername()).thenReturn("MutedUser");
+        when(mastersService.isMaster("MutedUser")).thenReturn(false);
+        when(permissionService.has(player, "flux.bypass.mute")).thenReturn(false);
+
+        PunishmentRecord mute = new PunishmentRecord(
+                "MU7002",
+                PunishmentType.MUTE,
+                uuid.toString(),
+                "198.51.100.100",
+                "MutedUser",
+                "executor-uuid",
+                "mute reason",
+                Instant.now().minusSeconds(60),
+                Instant.now().plusSeconds(600),
+                true,
+                false,
+                false,
+                false,
+                Map.of()
+        );
+        when(punishmentService.activeMute(uuid.toString(), "MutedUser")).thenReturn(Optional.of(mute));
+
+        Component mutedMessage = Component.text("muted");
+        when(messageService.mutedMessage(mute)).thenReturn(mutedMessage);
+
+        CommandExecuteEvent event = mock(CommandExecuteEvent.class);
+        when(event.getResult()).thenReturn(CommandExecuteEvent.CommandResult.allowed());
+        when(event.getCommandSource()).thenReturn(player);
+        when(event.getCommand()).thenReturn("/msg Staff hello");
+
+        listener.onCommandExecute(event);
+
+        verify(event).setResult(argThat(result -> !result.isAllowed()));
+        verify(player).sendMessage(mutedMessage);
+    }
+
+    @Test
+    void onCommandExecuteAllowsUnlistedCommandForMutedPlayer() {
+        PunishmentService punishmentService = mock(PunishmentService.class);
+        PermissionService permissionService = mock(PermissionService.class);
+        MastersService mastersService = mock(MastersService.class);
+        MessageService messageService = mock(MessageService.class);
+        ModerationListener listener = new ModerationListener(
+                mock(PlayerRepository.class),
+                punishmentService,
+                permissionService,
+                mastersService,
+                messageService,
+                new MutedCommandsConfig()
+        );
+
+        Player player = mock(Player.class);
+        UUID uuid = UUID.fromString("00000000-0000-0000-0000-000000000780");
+        when(player.getUniqueId()).thenReturn(uuid);
+        when(player.getUsername()).thenReturn("MutedUser");
+        when(mastersService.isMaster("MutedUser")).thenReturn(false);
+        when(permissionService.has(player, "flux.bypass.mute")).thenReturn(false);
+        when(punishmentService.activeMute(uuid.toString(), "MutedUser")).thenReturn(Optional.of(mock(PunishmentRecord.class)));
+
+        CommandExecuteEvent event = mock(CommandExecuteEvent.class);
+        when(event.getResult()).thenReturn(CommandExecuteEvent.CommandResult.allowed());
+        when(event.getCommandSource()).thenReturn(player);
+        when(event.getCommand()).thenReturn("/spawn");
+
+        listener.onCommandExecute(event);
+
+        verify(event, never()).setResult(any(CommandExecuteEvent.CommandResult.class));
+        verify(messageService, never()).mutedMessage(any(PunishmentRecord.class));
     }
 }

@@ -12,7 +12,8 @@ public final class ConfigFileInstaller {
             "config.yml",
             "messages.yml",
             "templates.yml",
-            "discord.yml"
+            "discord.yml",
+            "mutedcmds.yml"
     );
 
     private ConfigFileInstaller() {

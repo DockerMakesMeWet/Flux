@@ -228,6 +228,8 @@ public final class FluxCommandRegistrar {
         Duration duration = parseResult.duration();
         String reason = parseResult.reason();
         String templateName = null;
+        Integer templateOffenseStep = null;
+        String templateOffenseLabel = null;
 
         if (reason.startsWith("#")) {
             try {
@@ -236,6 +238,8 @@ public final class FluxCommandRegistrar {
                 duration = resolution.optionalDuration().orElse(null);
                 reason = resolution.reason();
                 templateName = resolution.templateName();
+                templateOffenseStep = resolution.offenseStep();
+                templateOffenseLabel = resolution.offenseLabel();
             } catch (IllegalArgumentException exception) {
                 if ("template:no-permission".equals(exception.getMessage())) {
                     messageService.sendNoPermission(invocation.source());
@@ -253,6 +257,8 @@ public final class FluxCommandRegistrar {
                 duration,
                 reason,
                 templateName,
+                templateOffenseStep,
+                templateOffenseLabel,
                 null,
                 false
         ));
@@ -488,7 +494,7 @@ public final class FluxCommandRegistrar {
             invocation.source(),
             reason
         );
-        punishmentService.sendVoidWebhook(targetId, invocation.source(), punishmentService.isIpPunishment(record.get()), reason);
+        punishmentService.sendVoidWebhook(targetId, invocation.source(), punishmentService.isIpPunishment(record.get()), reason, record.get());
         punishmentService.notifyPlayerWarnRemoved(record.get());
         messageService.sendVoidUpdated(invocation.source(), targetId);
         messageService.broadcastVoid(targetId, targetId, executorName, reason);
@@ -1328,10 +1334,15 @@ public final class FluxCommandRegistrar {
                 ? PunishmentTimeFormatter.PERMANENT_LABEL
                 : PunishmentTimeFormatter.formatDuration(punishment.startTime(), punishment.endTime());
         String template = "N/A";
+        String templateStep = "N/A";
         if (punishment.metadata() != null) {
             String maybeTemplate = normalizeToken(punishment.metadata().get("template"));
             if (!maybeTemplate.isEmpty()) {
                 template = maybeTemplate;
+            }
+            String maybeTemplateStep = normalizeToken(punishment.metadata().get("template_step"));
+            if (!maybeTemplateStep.isEmpty()) {
+                templateStep = maybeTemplateStep;
             }
         }
 
@@ -1348,7 +1359,12 @@ public final class FluxCommandRegistrar {
                 Boolean.toString(punishment.voided()),
                 punishment.voidReason()
         );
-        messageService.sendCheckDetailMeta(source, Boolean.toString(punishmentService.isIpPunishment(punishment)), template);
+        messageService.sendCheckDetailMeta(
+            source,
+            Boolean.toString(punishmentService.isIpPunishment(punishment)),
+            template,
+            templateStep
+        );
     }
 
     private void sendPunishmentSummary(CommandSource source, PunishmentRecord punishment, boolean includeTarget) {

@@ -7,6 +7,7 @@ import java.util.Map;
 import org.owl.flux.config.model.DiscordConfig;
 import org.owl.flux.config.model.MainConfig;
 import org.owl.flux.config.model.MessagesConfig;
+import org.owl.flux.config.model.MutedCommandsConfig;
 import org.owl.flux.config.model.TemplatesConfig;
 import org.spongepowered.configurate.ConfigurateException;
 import org.spongepowered.configurate.ConfigurationNode;
@@ -24,12 +25,14 @@ public final class FluxConfigLoader {
         MessagesConfig messages = loadFile("messages.yml", MessagesConfig.class);
         TemplatesConfig templates = loadFile("templates.yml", TemplatesConfig.class);
         DiscordConfig discord = loadFile("discord.yml", DiscordConfig.class);
+        MutedCommandsConfig mutedCommands = loadFile("mutedcmds.yml", MutedCommandsConfig.class);
 
         validateMain(main);
         validateMessages(messages);
         validateTemplates(templates);
         validateDiscord(discord);
-        return new ConfigurationBundle(main, messages, templates, discord);
+        validateMutedCommands(mutedCommands);
+        return new ConfigurationBundle(main, messages, templates, discord, mutedCommands);
     }
 
     private <T> T loadFile(String fileName, Class<T> type) {
@@ -142,6 +145,47 @@ public final class FluxConfigLoader {
                 throw new ConfigValidationException("discord.yml action '" + action + "' description must not be blank.");
             }
         }
+    }
+
+    private static void validateMutedCommands(MutedCommandsConfig mutedCommands) {
+        if (mutedCommands.vanilla == null) {
+            throw new ConfigValidationException("mutedcmds.yml vanilla section must not be null.");
+        }
+        if (mutedCommands.messageCommands == null) {
+            throw new ConfigValidationException("mutedcmds.yml message-commands section must not be null.");
+        }
+        if (mutedCommands.essentialsxMessageCommands == null) {
+            throw new ConfigValidationException("mutedcmds.yml essentialsx-message-commands section must not be null.");
+        }
+
+        int enabledCount = 0;
+        enabledCount += validateMutedCommandGroup("vanilla", mutedCommands.vanilla);
+        enabledCount += validateMutedCommandGroup("message-commands", mutedCommands.messageCommands);
+        enabledCount += validateMutedCommandGroup("essentialsx-message-commands", mutedCommands.essentialsxMessageCommands);
+
+        if (enabledCount <= 0) {
+            throw new ConfigValidationException("mutedcmds.yml must enable at least one blocked command.");
+        }
+    }
+
+    private static int validateMutedCommandGroup(String groupName, Map<String, MutedCommandsConfig.CommandRule> group) {
+        int enabledCount = 0;
+        for (Map.Entry<String, MutedCommandsConfig.CommandRule> entry : group.entrySet()) {
+            String command = normalize(entry.getKey());
+            if (command.isEmpty()) {
+                throw new ConfigValidationException("mutedcmds.yml " + groupName + " contains a blank command key.");
+            }
+            MutedCommandsConfig.CommandRule rule = entry.getValue();
+            if (rule == null) {
+                throw new ConfigValidationException(
+                        "mutedcmds.yml " + groupName + " command '" + command + "' must define a command rule."
+                );
+            }
+            if (rule.enabled) {
+                enabledCount++;
+            }
+        }
+        return enabledCount;
     }
 
     private static String normalize(String input) {

@@ -1,0 +1,100 @@
+# =============================================================
+# Flux Muted Commands Configuration
+# =============================================================
+# Purpose:
+#   Controls which command roots are blocked while a player is muted.
+#
+# Behavior:
+#   - If a muted player runs a command listed below with enabled: true,
+#     Flux blocks it and shows the standard muted message.
+#   - Matching is done on command root (first token), case-insensitive.
+#   - Namespaced variants (for example essentials:msg) are normalized to
+#     the same root key (msg).
+#
+# Editing tips:
+#   - Keep command keys lowercase.
+#   - Use enabled: false to allow a command without deleting it.
+
+vanilla:
+  tell:
+    enabled: true
+    description: "Vanilla private message command"
+  msg:
+    enabled: true
+    description: "Vanilla /msg alias"
+  w:
+    enabled: true
+    description: "Vanilla /w alias"
+  me:
+    enabled: true
+    description: "Vanilla emote message command"
+  say:
+    enabled: true
+    description: "Vanilla broadcast command"
+  teammsg:
+    enabled: true
+    description: "Vanilla team chat command"
+  tm:
+    enabled: true
+    description: "Vanilla /teammsg alias"
+
+message-commands:
+  pm:
+    enabled: true
+    description: "Generic private message command"
+  dm:
+    enabled: true
+    description: "Generic direct message alias"
+  whisper:
+    enabled: true
+    description: "Generic whisper command"
+  tell:
+    enabled: true
+    description: "Common tell command alias"
+  msg:
+    enabled: true
+    description: "Common message command alias"
+  reply:
+    enabled: true
+    description: "Reply to the last private message"
+  r:
+    enabled: true
+    description: "Reply shorthand alias"
+  m:
+    enabled: true
+    description: "Message shorthand alias"
+  mail:
+    enabled: true
+    description: "Generic mail command family"
+  message:
+    enabled: true
+    description: "Generic /message alias"
+
+essentialsx-message-commands:
+  msg:
+    enabled: true
+    description: "EssentialsX /msg"
+  m:
+    enabled: true
+    description: "EssentialsX /m"
+  tell:
+    enabled: true
+    description: "EssentialsX /tell alias"
+  w:
+    enabled: true
+    description: "EssentialsX /w alias"
+  reply:
+    enabled: true
+    description: "EssentialsX /reply"
+  r:
+    enabled: true
+    description: "EssentialsX /r"
+  mail:
+    enabled: true
+    description: "EssentialsX /mail (including mail send)"
+  emsg:
+    enabled: true
+    description: "EssentialsX /emsg"
+  email:
+    enabled: true
+    description: "EssentialsX /email alias"

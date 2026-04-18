@@ -22,7 +22,7 @@ import org.owl.flux.util.PunishmentTimeFormatter;
 
 public final class MessageService {
     private final ProxyServer server;
-    private final MessagesConfig messages;
+    private volatile MessagesConfig messages;
     private final PermissionService permissionService;
     private final MastersService mastersService;
     private final Clock clock;
@@ -45,10 +45,14 @@ public final class MessageService {
             Clock clock
     ) {
         this.server = server;
-        this.messages = messages;
+        this.messages = messages == null ? new MessagesConfig() : messages;
         this.permissionService = permissionService;
         this.mastersService = mastersService;
         this.clock = clock == null ? Clock.systemUTC() : clock;
+    }
+
+    public void updateMessages(MessagesConfig messages) {
+        this.messages = messages == null ? new MessagesConfig() : messages;
     }
 
     public void send(CommandSource source, String template, Map<String, String> placeholders) {
@@ -226,10 +230,11 @@ public final class MessageService {
         ));
     }
 
-    public void sendCheckDetailMeta(CommandSource source, String ipPunishment, String template) {
+    public void sendCheckDetailMeta(CommandSource source, String ipPunishment, String template, String templateStep) {
         send(source, messages.commands.checkDetailMeta, Map.of(
                 "ip_punishment", safeText(ipPunishment),
-                "template", safeText(template)
+                "template", safeText(template),
+                "template_step", safeText(templateStep)
         ));
     }
 

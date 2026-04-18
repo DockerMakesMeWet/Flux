@@ -3,11 +3,13 @@
 # =============================================================
 # This file controls outbound Discord webhook formatting and delivery.
 #
-# Description placeholder values:
-#   <executor> <target> <reason> <id> <type> <action> <ip_punishment>
-#   <timestamp> <target_uuid> <target_ip> <template> <duration>
-#   <start_time> <end_time> <issued_offline> <related_action_id>
-#   <executor_type> <action_label>
+# Description/field placeholder values:
+#   <executor> <target> <reason> <id> <type> <action> <action_label>
+#   <ip_punishment> <timestamp> <target_uuid> <target_ip>
+#   <template> <template_step> <template_step_number> <template_used>
+#   <step_down_template> <step_down_step>
+#   <duration> <start_time> <end_time> <issued_offline>
+#   <related_action_id> <executor_type>
 #
 # Action keys emitted by Flux by default:
 #   ban, mute, kick, warn, void, unban, unmute
@@ -35,19 +37,19 @@ webhook:
 
 actions:
   # For every action key below:
-  #   enabled       -> possible values: true, false
-  #   title         -> possible values: any non-empty string
-  #   description   -> possible values: any non-empty string + optional placeholders above
-  #   content       -> possible values: empty string or mention text
-  #   color         -> possible values: #RRGGBB
+  #   enabled        -> possible values: true, false
+  #   title          -> possible values: any non-empty string
+  #   description    -> possible values: any non-empty string + optional placeholders above
+  #   content        -> possible values: empty string or mention text
+  #   color          -> possible values: #RRGGBB
   #   show-timestamp -> possible values: true, false
-  #   footer-text   -> possible values: any string
-  #   fields        -> list of named values with inline=true/false
+  #   footer-text    -> possible values: any string
+  #   fields         -> list of named values with inline=true/false
 
   ban:
     enabled: true
-    title: "Ban Issued - <id>"
-    description: "<executor> applied a ban to <target>."
+    title: "<action_label> - <id>"
+    description: "<executor> performed <action_label> on <target>."
     content: ""
     color: "#ED4245"
     show-timestamp: true
@@ -62,6 +64,18 @@ actions:
       - name: "Template"
         value: "<template>"
         inline: true
+      - name: "Template Step"
+        value: "<template_step>"
+        inline: true
+      - name: "Step-Down Template"
+        value: "<step_down_template>"
+        inline: true
+      - name: "Step-Down Step"
+        value: "<step_down_step>"
+        inline: true
+      - name: "Related Action ID"
+        value: "<related_action_id>"
+        inline: true
       - name: "IP Punishment"
         value: "<ip_punishment>"
         inline: true
@@ -71,14 +85,23 @@ actions:
       - name: "Target IP"
         value: "<target_ip>"
         inline: true
+      - name: "Start"
+        value: "<start_time>"
+        inline: true
+      - name: "End"
+        value: "<end_time>"
+        inline: true
       - name: "Issued Offline"
         value: "<issued_offline>"
+        inline: true
+      - name: "Executor Type"
+        value: "<executor_type>"
         inline: true
 
   mute:
     enabled: true
-    title: "Mute Issued - <id>"
-    description: "<executor> muted <target>."
+    title: "<action_label> - <id>"
+    description: "<executor> performed <action_label> on <target>."
     content: ""
     color: "#F1C40F"
     show-timestamp: true
@@ -93,6 +116,21 @@ actions:
       - name: "Template"
         value: "<template>"
         inline: true
+      - name: "Template Step"
+        value: "<template_step>"
+        inline: true
+      - name: "Step-Down Template"
+        value: "<step_down_template>"
+        inline: true
+      - name: "Step-Down Step"
+        value: "<step_down_step>"
+        inline: true
+      - name: "Related Action ID"
+        value: "<related_action_id>"
+        inline: true
+      - name: "IP Punishment"
+        value: "<ip_punishment>"
+        inline: true
       - name: "Target UUID"
         value: "<target_uuid>"
         inline: true
@@ -105,11 +143,17 @@ actions:
       - name: "End"
         value: "<end_time>"
         inline: true
+      - name: "Issued Offline"
+        value: "<issued_offline>"
+        inline: true
+      - name: "Executor Type"
+        value: "<executor_type>"
+        inline: true
 
   kick:
     enabled: true
-    title: "Kick Issued - <id>"
-    description: "<executor> removed <target> from the server."
+    title: "<action_label> - <id>"
+    description: "<executor> performed <action_label> on <target>."
     content: ""
     color: "#E67E22"
     show-timestamp: true
@@ -118,8 +162,26 @@ actions:
       - name: "Reason"
         value: "<reason>"
         inline: false
+      - name: "Duration"
+        value: "<duration>"
+        inline: true
       - name: "Template"
         value: "<template>"
+        inline: true
+      - name: "Template Step"
+        value: "<template_step>"
+        inline: true
+      - name: "Step-Down Template"
+        value: "<step_down_template>"
+        inline: true
+      - name: "Step-Down Step"
+        value: "<step_down_step>"
+        inline: true
+      - name: "Related Action ID"
+        value: "<related_action_id>"
+        inline: true
+      - name: "IP Punishment"
+        value: "<ip_punishment>"
         inline: true
       - name: "Target UUID"
         value: "<target_uuid>"
@@ -127,11 +189,23 @@ actions:
       - name: "Target IP"
         value: "<target_ip>"
         inline: true
+      - name: "Start"
+        value: "<start_time>"
+        inline: true
+      - name: "End"
+        value: "<end_time>"
+        inline: true
+      - name: "Issued Offline"
+        value: "<issued_offline>"
+        inline: true
+      - name: "Executor Type"
+        value: "<executor_type>"
+        inline: true
 
   warn:
     enabled: true
-    title: "Warning Issued - <id>"
-    description: "<executor> issued a warning to <target>."
+    title: "<action_label> - <id>"
+    description: "<executor> performed <action_label> on <target>."
     content: ""
     color: "#3498DB"
     show-timestamp: true
@@ -140,8 +214,26 @@ actions:
       - name: "Reason"
         value: "<reason>"
         inline: false
+      - name: "Duration"
+        value: "<duration>"
+        inline: true
       - name: "Template"
         value: "<template>"
+        inline: true
+      - name: "Template Step"
+        value: "<template_step>"
+        inline: true
+      - name: "Step-Down Template"
+        value: "<step_down_template>"
+        inline: true
+      - name: "Step-Down Step"
+        value: "<step_down_step>"
+        inline: true
+      - name: "Related Action ID"
+        value: "<related_action_id>"
+        inline: true
+      - name: "IP Punishment"
+        value: "<ip_punishment>"
         inline: true
       - name: "Target UUID"
         value: "<target_uuid>"
@@ -149,56 +241,170 @@ actions:
       - name: "Target IP"
         value: "<target_ip>"
         inline: true
+      - name: "Start"
+        value: "<start_time>"
+        inline: true
+      - name: "End"
+        value: "<end_time>"
+        inline: true
+      - name: "Issued Offline"
+        value: "<issued_offline>"
+        inline: true
+      - name: "Executor Type"
+        value: "<executor_type>"
+        inline: true
 
   void:
     enabled: true
-    title: "Action Voided - <id>"
-    description: "<executor> voided moderation action <related_action_id>."
+    title: "<action_label> - <id>"
+    description: "<executor> performed <action_label> on <target>."
     content: ""
     color: "#95A5A6"
     show-timestamp: true
     footer-text: "Flux Moderation"
     fields:
-      - name: "Target Action"
-        value: "<related_action_id>"
-        inline: true
       - name: "Reason"
         value: "<reason>"
         inline: false
+      - name: "Duration"
+        value: "<duration>"
+        inline: true
+      - name: "Template"
+        value: "<template>"
+        inline: true
+      - name: "Template Step"
+        value: "<template_step>"
+        inline: true
+      - name: "Step-Down Template"
+        value: "<step_down_template>"
+        inline: true
+      - name: "Step-Down Step"
+        value: "<step_down_step>"
+        inline: true
+      - name: "Related Action ID"
+        value: "<related_action_id>"
+        inline: true
       - name: "IP Punishment"
         value: "<ip_punishment>"
+        inline: true
+      - name: "Target UUID"
+        value: "<target_uuid>"
+        inline: true
+      - name: "Target IP"
+        value: "<target_ip>"
+        inline: true
+      - name: "Start"
+        value: "<start_time>"
+        inline: true
+      - name: "End"
+        value: "<end_time>"
+        inline: true
+      - name: "Issued Offline"
+        value: "<issued_offline>"
+        inline: true
+      - name: "Executor Type"
+        value: "<executor_type>"
         inline: true
 
   unban:
     enabled: true
-    title: "Ban Lifted"
-    description: "<executor> removed an active ban for <target>."
+    title: "<action_label> - <id>"
+    description: "<executor> performed <action_label> on <target>."
     content: ""
     color: "#57F287"
     show-timestamp: true
     footer-text: "Flux Moderation"
     fields:
-      - name: "Target"
-        value: "<target>"
+      - name: "Reason"
+        value: "<reason>"
+        inline: false
+      - name: "Duration"
+        value: "<duration>"
         inline: true
-      - name: "Executor Type"
-        value: "<executor_type>"
+      - name: "Template"
+        value: "<template>"
+        inline: true
+      - name: "Template Step"
+        value: "<template_step>"
+        inline: true
+      - name: "Step-Down Template"
+        value: "<step_down_template>"
+        inline: true
+      - name: "Step-Down Step"
+        value: "<step_down_step>"
+        inline: true
+      - name: "Related Action ID"
+        value: "<related_action_id>"
         inline: true
       - name: "IP Punishment"
         value: "<ip_punishment>"
         inline: true
+      - name: "Target UUID"
+        value: "<target_uuid>"
+        inline: true
+      - name: "Target IP"
+        value: "<target_ip>"
+        inline: true
+      - name: "Start"
+        value: "<start_time>"
+        inline: true
+      - name: "End"
+        value: "<end_time>"
+        inline: true
+      - name: "Issued Offline"
+        value: "<issued_offline>"
+        inline: true
+      - name: "Executor Type"
+        value: "<executor_type>"
+        inline: true
 
   unmute:
     enabled: true
-    title: "Mute Lifted"
-    description: "<executor> removed an active mute for <target>."
+    title: "<action_label> - <id>"
+    description: "<executor> performed <action_label> on <target>."
     content: ""
     color: "#2ECC71"
     show-timestamp: true
     footer-text: "Flux Moderation"
     fields:
-      - name: "Target"
-        value: "<target>"
+      - name: "Reason"
+        value: "<reason>"
+        inline: false
+      - name: "Duration"
+        value: "<duration>"
+        inline: true
+      - name: "Template"
+        value: "<template>"
+        inline: true
+      - name: "Template Step"
+        value: "<template_step>"
+        inline: true
+      - name: "Step-Down Template"
+        value: "<step_down_template>"
+        inline: true
+      - name: "Step-Down Step"
+        value: "<step_down_step>"
+        inline: true
+      - name: "Related Action ID"
+        value: "<related_action_id>"
+        inline: true
+      - name: "IP Punishment"
+        value: "<ip_punishment>"
+        inline: true
+      - name: "Target UUID"
+        value: "<target_uuid>"
+        inline: true
+      - name: "Target IP"
+        value: "<target_ip>"
+        inline: true
+      - name: "Start"
+        value: "<start_time>"
+        inline: true
+      - name: "End"
+        value: "<end_time>"
+        inline: true
+      - name: "Issued Offline"
+        value: "<issued_offline>"
         inline: true
       - name: "Executor Type"
         value: "<executor_type>"

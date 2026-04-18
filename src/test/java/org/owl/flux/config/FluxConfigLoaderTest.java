@@ -62,6 +62,30 @@ class FluxConfigLoaderTest {
     }
 
     @Test
+    void rejectsMutedCommandsConfigWithoutEnabledCommands() throws IOException {
+        Path dir = Files.createTempDirectory("flux-config-test-muted-invalid");
+        writeBaseFiles(dir);
+        writeValidDiscordConfig(dir);
+        Files.writeString(dir.resolve("mutedcmds.yml"), """
+                vanilla:
+                  msg:
+                    enabled: false
+                    description: "disabled"
+                message-commands:
+                  reply:
+                    enabled: false
+                    description: "disabled"
+                essentialsx-message-commands:
+                  mail:
+                    enabled: false
+                    description: "disabled"
+                """);
+
+        FluxConfigLoader loader = new FluxConfigLoader(dir);
+        assertThrows(ConfigValidationException.class, loader::load);
+    }
+
+    @Test
     void loadsDefaultValuesForNewMessageKeysWhenMissingFromLegacyFile() throws IOException {
         Path dir = Files.createTempDirectory("flux-config-test-message-defaults");
         writeBaseFiles(dir);
@@ -200,6 +224,20 @@ class FluxConfigLoaderTest {
                     tiers:
                       - duration: "1d"
                         reason: "sample"
+                """);
+        Files.writeString(dir.resolve("mutedcmds.yml"), """
+                vanilla:
+                  msg:
+                    enabled: true
+                    description: "vanilla"
+                message-commands:
+                  reply:
+                    enabled: true
+                    description: "generic"
+                essentialsx-message-commands:
+                  mail:
+                    enabled: true
+                    description: "essentialsx"
                 """);
     }
 }

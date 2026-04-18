@@ -8,7 +8,9 @@ public record TemplateResolution(
         PunishmentType type,
         Duration duration,
         String reason,
-        String templateName
+        String templateName,
+        int offenseStep,
+        String offenseLabel
 ) {
     public Optional<Duration> optionalDuration() {
         return Optional.ofNullable(duration);

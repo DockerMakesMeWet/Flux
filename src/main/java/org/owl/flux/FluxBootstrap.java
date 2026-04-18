@@ -13,6 +13,7 @@ import org.owl.flux.command.ReloadHandler;
 import org.owl.flux.config.ConfigFileInstaller;
 import org.owl.flux.config.ConfigurationBundle;
 import org.owl.flux.config.FluxConfigLoader;
+import org.owl.flux.config.model.MainConfig;
 import org.owl.flux.core.ServiceRegistry;
 import org.owl.flux.data.DatabaseManager;
 import org.owl.flux.data.SchemaManager;
@@ -78,39 +79,34 @@ public final class FluxBootstrap {
     }
 
     public synchronized boolean reload() {
-        Runtime previous = this.runtime;
+        Runtime activeRuntime = this.runtime;
+        if (activeRuntime == null) {
+            logger.warn("Flux reload requested before runtime startup.");
+            return false;
+        }
+
         ConfigurationBundle configuration;
-        Runtime next;
         try {
             configuration = configLoader.load();
-            next = buildRuntime(configuration);
         } catch (Exception exception) {
             logger.error("Failed to reload Flux configuration.", exception);
             return false;
         }
 
-        if (previous != null) {
-            previous.shutdown(server, plugin);
-        }
-
         try {
-            next.start(server, plugin, logger);
+            activeRuntime.applyConfiguration(configuration, logger);
         } catch (Exception exception) {
-            logger.error("Failed to activate reloaded Flux runtime.", exception);
-            try {
-                next.shutdown(server, plugin);
-            } catch (Exception ignored) {
-                // Best-effort cleanup when activation fails.
-            }
-            this.runtime = null;
+            logger.error("Failed to apply reloaded Flux configuration.", exception);
             return false;
         }
 
-        this.runtime = next;
         updateServiceRegistry(configuration);
+        if (!configuration.main().masters.refreshOnReload) {
+            return true;
+        }
 
         try {
-            return next.mastersService().refreshAsync().get(10, TimeUnit.SECONDS);
+            return activeRuntime.mastersService().refreshAsync().get(10, TimeUnit.SECONDS);
         } catch (TimeoutException timeoutException) {
             logger.warn("Flux masters refresh timed out after reload; cached entries retained.");
             return false;
@@ -121,7 +117,8 @@ public final class FluxBootstrap {
     }
 
     private Runtime buildRuntime(ConfigurationBundle configuration) {
-        DatabaseManager databaseManager = new DatabaseManager(logger, dataDirectory, configuration.main().database);
+        MainConfig.DatabaseConfig databaseConfig = configuration.main().database;
+        DatabaseManager databaseManager = new DatabaseManager(logger, dataDirectory, databaseConfig);
         databaseManager.start();
 
         DataSource dataSource = databaseManager.dataSource();
@@ -154,7 +151,8 @@ public final class FluxBootstrap {
                 punishmentService,
                 permissionService,
                 mastersService,
-                messageService
+            messageService,
+            configuration.mutedCommands()
         );
 
         FluxCommandRegistrar commandRegistrar = new FluxCommandRegistrar(
@@ -173,7 +171,43 @@ public final class FluxBootstrap {
                 resolveVersion()
         );
 
-        return new Runtime(databaseManager, commandRegistrar, mastersService, moderationListener, punishmentService);
+        return new Runtime(
+                databaseManager,
+                commandRegistrar,
+                mastersService,
+                moderationListener,
+                punishmentService,
+                messageService,
+                templateService,
+                discordWebhookService,
+                databaseConfigSignature(databaseConfig)
+        );
+    }
+
+    private static String databaseConfigSignature(MainConfig.DatabaseConfig databaseConfig) {
+        if (databaseConfig == null) {
+            return "";
+        }
+
+        MainConfig.PostgreSqlConfig postgresql = databaseConfig.postgresql;
+        MainConfig.PoolConfig pool = postgresql == null ? null : postgresql.pool;
+        MainConfig.H2Config h2 = databaseConfig.h2;
+        return String.join("|",
+                safe(databaseConfig.provider),
+                safe(postgresql == null ? null : postgresql.host),
+                Integer.toString(postgresql == null ? 0 : postgresql.port),
+                safe(postgresql == null ? null : postgresql.database),
+                safe(postgresql == null ? null : postgresql.username),
+                safe(postgresql == null ? null : postgresql.serverVersion),
+                Integer.toString(pool == null ? 0 : pool.maximumPoolSize),
+                Integer.toString(pool == null ? 0 : pool.minimumIdle),
+                Long.toString(pool == null ? 0L : pool.connectionTimeoutMs),
+                safe(h2 == null ? null : h2.file)
+        );
+    }
+
+    private static String safe(String value) {
+        return value == null ? "" : value;
     }
 
     private void updateServiceRegistry(ConfigurationBundle configuration) {
@@ -198,6 +232,10 @@ public final class FluxBootstrap {
         private final MastersService mastersService;
         private final ModerationListener moderationListener;
         private final PunishmentService punishmentService;
+        private final MessageService messageService;
+        private final TemplateService templateService;
+        private final DiscordWebhookService discordWebhookService;
+        private final String appliedDatabaseConfigSignature;
         private ScheduledTask muteExpiryNotificationTask;
 
         private Runtime(
@@ -205,13 +243,21 @@ public final class FluxBootstrap {
                 FluxCommandRegistrar commandRegistrar,
                 MastersService mastersService,
                 ModerationListener moderationListener,
-                PunishmentService punishmentService
+            PunishmentService punishmentService,
+            MessageService messageService,
+            TemplateService templateService,
+            DiscordWebhookService discordWebhookService,
+            String appliedDatabaseConfigSignature
         ) {
             this.databaseManager = databaseManager;
             this.commandRegistrar = commandRegistrar;
             this.mastersService = mastersService;
             this.moderationListener = moderationListener;
             this.punishmentService = punishmentService;
+            this.messageService = messageService;
+            this.templateService = templateService;
+            this.discordWebhookService = discordWebhookService;
+            this.appliedDatabaseConfigSignature = appliedDatabaseConfigSignature == null ? "" : appliedDatabaseConfigSignature;
         }
 
         void start(ProxyServer server, Object plugin, Logger logger) {
@@ -231,6 +277,22 @@ public final class FluxBootstrap {
 
         MastersService mastersService() {
             return mastersService;
+        }
+
+        void applyConfiguration(ConfigurationBundle configuration, Logger logger) {
+            if (configuration == null) {
+                return;
+            }
+
+            messageService.updateMessages(configuration.messages());
+            templateService.updateTemplates(configuration.templates());
+            discordWebhookService.updateConfig(configuration.discord());
+            moderationListener.updateMutedCommands(configuration.mutedCommands());
+
+            String reloadedDatabaseSignature = FluxBootstrap.databaseConfigSignature(configuration.main().database);
+            if (!appliedDatabaseConfigSignature.equals(reloadedDatabaseSignature)) {
+                logger.warn("Flux detected database configuration changes during /flux reload; restart the proxy to apply database setting updates.");
+            }
         }
 
         void shutdown(ProxyServer server, Object plugin) {

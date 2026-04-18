@@ -6,6 +6,7 @@ import com.velocitypowered.api.proxy.ProxyServer;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -19,12 +20,16 @@ import org.owl.flux.data.repository.PunishmentRepository;
 import org.owl.flux.integration.DiscordWebhookService;
 import org.owl.flux.service.model.PunishmentRequest;
 import org.owl.flux.service.model.PunishmentResult;
+import org.owl.flux.util.OrdinalFormatter;
 import org.owl.flux.util.NetworkUtil;
 import org.owl.flux.util.PunishmentTimeFormatter;
 
 public final class PunishmentService {
     private static final String CONSOLE_UUID = "00000000-0000-0000-0000-000000000000";
     private static final String IP_PUNISHMENT_METADATA_KEY = "ip_punishment";
+    private static final String TEMPLATE_METADATA_KEY = "template";
+    private static final String TEMPLATE_STEP_METADATA_KEY = "template_step";
+    private static final String TEMPLATE_STEP_NUMBER_METADATA_KEY = "template_step_number";
     private static final int MAX_SAVE_ID_COLLISION_RETRIES = 8;
 
     private final ProxyServer server;
@@ -59,7 +64,13 @@ public final class PunishmentService {
 
         Map<String, String> metadata = new HashMap<>();
         if (request.templateName() != null && !request.templateName().isBlank()) {
-            metadata.put("template", request.templateName());
+            metadata.put(TEMPLATE_METADATA_KEY, request.templateName());
+            if (request.templateOffenseLabel() != null && !request.templateOffenseLabel().isBlank()) {
+                metadata.put(TEMPLATE_STEP_METADATA_KEY, request.templateOffenseLabel());
+            }
+            if (request.templateOffenseStep() != null && request.templateOffenseStep() > 0) {
+                metadata.put(TEMPLATE_STEP_NUMBER_METADATA_KEY, Integer.toString(request.templateOffenseStep()));
+            }
         }
         metadata.put(IP_PUNISHMENT_METADATA_KEY, Boolean.toString(request.ipPunishment()));
 
@@ -207,7 +218,18 @@ public final class PunishmentService {
         context.put("related_action_id", "N/A");
         context.put("duration", "N/A");
         context.put("template", "N/A");
+        context.put("template_step", "N/A");
+        context.put("template_step_number", "N/A");
+        context.put("step_down_template", "N/A");
+        context.put("step_down_step", "N/A");
+        context.put("template_used", "false");
+        context.put("target_uuid", "N/A");
+        context.put("target_ip", "N/A");
+        context.put("start_time", "N/A");
+        context.put("end_time", "N/A");
+        context.put("issued_offline", "N/A");
         context.put("executor_type", executor instanceof Player ? "PLAYER" : "CONSOLE");
+        context.put("action_label", "UNBAN");
         discordWebhookService.sendAction(
                 "unban",
                 target,
@@ -225,7 +247,18 @@ public final class PunishmentService {
         context.put("related_action_id", "N/A");
         context.put("duration", "N/A");
         context.put("template", "N/A");
+        context.put("template_step", "N/A");
+        context.put("template_step_number", "N/A");
+        context.put("step_down_template", "N/A");
+        context.put("step_down_step", "N/A");
+        context.put("template_used", "false");
+        context.put("target_uuid", "N/A");
+        context.put("target_ip", "N/A");
+        context.put("start_time", "N/A");
+        context.put("end_time", "N/A");
+        context.put("issued_offline", "N/A");
         context.put("executor_type", executor instanceof Player ? "PLAYER" : "CONSOLE");
+        context.put("action_label", "UNMUTE");
         discordWebhookService.sendAction(
                 "unmute",
                 target,
@@ -238,12 +271,30 @@ public final class PunishmentService {
         );
     }
 
-    public void sendVoidWebhook(String targetActionId, CommandSource executor, boolean ipPunishment, String reason) {
+    public void sendVoidWebhook(
+            String targetActionId,
+            CommandSource executor,
+            boolean ipPunishment,
+            String reason,
+            PunishmentRecord targetRecord
+    ) {
         Map<String, String> context = new HashMap<>();
         context.put("related_action_id", targetActionId);
         context.put("duration", "N/A");
         context.put("template", "N/A");
+        context.put("template_step", "N/A");
+        context.put("template_step_number", "N/A");
+        context.put("step_down_template", "N/A");
+        context.put("step_down_step", "N/A");
+        context.put("template_used", "false");
+        context.put("target_uuid", "N/A");
+        context.put("target_ip", "N/A");
+        context.put("start_time", "N/A");
+        context.put("end_time", "N/A");
+        context.put("issued_offline", "N/A");
         context.put("executor_type", executor instanceof Player ? "PLAYER" : "CONSOLE");
+        context.put("action_label", "VOID");
+        applyVoidTemplateContext(context, targetRecord);
         discordWebhookService.sendAction(
                 "void",
                 targetActionId,
@@ -344,6 +395,16 @@ public final class PunishmentService {
         context.put("target_uuid", safeNullable(request.target().uuid()));
         context.put("target_ip", safeNullable(record.targetIp()));
         context.put("template", safeNullable(request.templateName()));
+        context.put("template_step", safeNullable(request.templateOffenseLabel()));
+        context.put(
+                "template_step_number",
+                request.templateOffenseStep() == null || request.templateOffenseStep() <= 0
+                        ? "N/A"
+                        : Integer.toString(request.templateOffenseStep())
+        );
+        context.put("step_down_template", "N/A");
+        context.put("step_down_step", "N/A");
+        context.put("template_used", Boolean.toString(request.templateName() != null && !request.templateName().isBlank()));
         context.put("duration", PunishmentTimeFormatter.formatRemaining(record.startTime(), record.endTime()));
         context.put("start_time", PunishmentTimeFormatter.formatTimestampHumanUtc(record.startTime()));
         context.put(
@@ -357,6 +418,81 @@ public final class PunishmentService {
         context.put("executor_type", request.executor() instanceof Player ? "PLAYER" : "CONSOLE");
         context.put("action_label", actionKey.toUpperCase());
         return context;
+    }
+
+    private static void applyVoidTemplateContext(Map<String, String> context, PunishmentRecord targetRecord) {
+        if (targetRecord == null || targetRecord.metadata() == null || targetRecord.metadata().isEmpty()) {
+            return;
+        }
+
+        String template = safeNullableOrNa(targetRecord.metadata().get(TEMPLATE_METADATA_KEY));
+        if ("N/A".equals(template)) {
+            return;
+        }
+
+        String templateStep = safeNullableOrNa(targetRecord.metadata().get(TEMPLATE_STEP_METADATA_KEY));
+        String stepNumber = safeNullableOrNa(targetRecord.metadata().get(TEMPLATE_STEP_NUMBER_METADATA_KEY));
+        context.put("template", template);
+        context.put("template_step", templateStep);
+        context.put("template_step_number", stepNumber);
+        context.put("template_used", "true");
+
+        int parsedStep = parsePositiveInt(stepNumber);
+        if (parsedStep <= 0) {
+            parsedStep = parseLeadingPositiveInt(templateStep);
+        }
+        if (parsedStep <= 0) {
+            return;
+        }
+
+        context.put("step_down_template", template);
+        if (parsedStep == 1) {
+            context.put("step_down_step", "No prior offense");
+            return;
+        }
+
+        context.put("step_down_step", OrdinalFormatter.offenseLabel(parsedStep - 1));
+    }
+
+    private static int parseLeadingPositiveInt(String rawValue) {
+        if (rawValue == null) {
+            return -1;
+        }
+        String value = rawValue.trim().toLowerCase(Locale.ROOT);
+        if (value.isEmpty()) {
+            return -1;
+        }
+
+        StringBuilder digits = new StringBuilder();
+        for (int index = 0; index < value.length(); index++) {
+            char character = value.charAt(index);
+            if (Character.isDigit(character)) {
+                digits.append(character);
+            } else {
+                break;
+            }
+        }
+        if (digits.isEmpty()) {
+            return -1;
+        }
+
+        return parsePositiveInt(digits.toString());
+    }
+
+    private static int parsePositiveInt(String rawValue) {
+        if (rawValue == null) {
+            return -1;
+        }
+        try {
+            int parsed = Integer.parseInt(rawValue.trim());
+            return parsed > 0 ? parsed : -1;
+        } catch (NumberFormatException ignored) {
+            return -1;
+        }
+    }
+
+    private static String safeNullableOrNa(String value) {
+        return (value == null || value.isBlank()) ? "N/A" : value;
     }
 
     private static String safeNullable(String value) {

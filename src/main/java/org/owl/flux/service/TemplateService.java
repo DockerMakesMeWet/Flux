@@ -8,10 +8,11 @@ import org.owl.flux.config.model.TemplatesConfig;
 import org.owl.flux.data.model.PunishmentType;
 import org.owl.flux.data.repository.PunishmentRepository;
 import org.owl.flux.service.model.TemplateResolution;
+import org.owl.flux.util.OrdinalFormatter;
 import org.owl.flux.util.DurationParser;
 
 public final class TemplateService {
-    private final TemplatesConfig templatesConfig;
+    private volatile TemplatesConfig templatesConfig;
     private final PunishmentRepository punishmentRepository;
     private final PermissionService permissionService;
 
@@ -20,9 +21,13 @@ public final class TemplateService {
             PunishmentRepository punishmentRepository,
             PermissionService permissionService
     ) {
-        this.templatesConfig = templatesConfig;
+        this.templatesConfig = templatesConfig == null ? new TemplatesConfig() : templatesConfig;
         this.punishmentRepository = punishmentRepository;
         this.permissionService = permissionService;
+    }
+
+    public void updateTemplates(TemplatesConfig templatesConfig) {
+        this.templatesConfig = templatesConfig == null ? new TemplatesConfig() : templatesConfig;
     }
 
     public TemplateResolution resolve(
@@ -30,11 +35,12 @@ public final class TemplateService {
             String rawTemplate,
             String targetUuid
     ) {
+        TemplatesConfig currentTemplates = this.templatesConfig;
         String templateName = rawTemplate.startsWith("#")
                 ? rawTemplate.substring(1).toLowerCase(Locale.ROOT)
                 : rawTemplate.toLowerCase(Locale.ROOT);
 
-        TemplatesConfig.TemplateDefinition definition = templatesConfig.templates.get(templateName);
+        TemplatesConfig.TemplateDefinition definition = currentTemplates.templates.get(templateName);
         if (definition == null) {
             throw new IllegalArgumentException("template:not-found");
         }
@@ -46,10 +52,18 @@ public final class TemplateService {
         PunishmentType type = PunishmentType.valueOf(definition.type.toUpperCase(Locale.ROOT));
         int priorCount = punishmentRepository.countTemplateHistory(targetUuid, type, templateName);
         int tierIndex = Math.min(priorCount, definition.tiers.size() - 1);
+        int offenseStep = tierIndex + 1;
         TemplatesConfig.TemplateTier tier = definition.tiers.get(tierIndex);
 
         Duration duration = DurationParser.parse(tier.duration).orElse(null);
-        return new TemplateResolution(type, duration, tier.reason, templateName);
+        return new TemplateResolution(
+            type,
+            duration,
+            tier.reason,
+            templateName,
+            offenseStep,
+            OrdinalFormatter.offenseLabel(offenseStep)
+        );
     }
 
     public Map<String, TemplatesConfig.TemplateDefinition> allTemplates() {

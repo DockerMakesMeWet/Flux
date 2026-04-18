@@ -99,6 +99,8 @@ class TemplateServiceTest {
         assertEquals(Duration.ofDays(7), resolution.duration());
         assertEquals("tier2", resolution.reason());
         assertEquals("hacking", resolution.templateName());
+        assertEquals(2, resolution.offenseStep());
+        assertEquals("2nd offense", resolution.offenseLabel());
     }
 
     @Test

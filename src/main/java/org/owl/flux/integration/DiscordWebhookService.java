@@ -23,12 +23,16 @@ public final class DiscordWebhookService {
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss 'UTC'").withZone(ZoneOffset.UTC);
 
     private final Logger logger;
-    private final DiscordConfig config;
+    private volatile DiscordConfig config;
     private final HttpClient httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
 
     public DiscordWebhookService(Logger logger, DiscordConfig config) {
         this.logger = logger;
-        this.config = config;
+        this.config = config == null ? new DiscordConfig() : config;
+    }
+
+    public void updateConfig(DiscordConfig config) {
+        this.config = config == null ? new DiscordConfig() : config;
     }
 
     public void sendAction(
@@ -53,11 +57,12 @@ public final class DiscordWebhookService {
             boolean ipPunishment,
             Map<String, String> context
     ) {
-        if (!config.webhook.enabled || config.webhook.url == null || config.webhook.url.isBlank()) {
+        DiscordConfig activeConfig = this.config;
+        if (!activeConfig.webhook.enabled || activeConfig.webhook.url == null || activeConfig.webhook.url.isBlank()) {
             return;
         }
 
-        DiscordConfig.ActionWebhookConfig actionConfig = resolveActionConfig(actionKey);
+        DiscordConfig.ActionWebhookConfig actionConfig = resolveActionConfig(activeConfig, actionKey);
         if (actionConfig == null || !actionConfig.enabled) {
             return;
         }
@@ -65,10 +70,10 @@ public final class DiscordWebhookService {
         try {
             Map<String, Object> payload = buildPayload(actionConfig, actionKey, target, executor, reason, id, type, ipPunishment, context);
 
-            long timeoutMs = Math.max(1000L, config.webhook.timeoutMs);
+                long timeoutMs = Math.max(1000L, activeConfig.webhook.timeoutMs);
             String body = OBJECT_MAPPER.writeValueAsString(payload);
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(config.webhook.url))
+                    .uri(URI.create(activeConfig.webhook.url))
                     .timeout(Duration.ofMillis(timeoutMs))
                     .header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(body))
@@ -95,6 +100,7 @@ public final class DiscordWebhookService {
             boolean ipPunishment,
             Map<String, String> context
     ) {
+        DiscordConfig activeConfig = this.config;
         Instant eventTime = Instant.now();
         String timestamp = formatWebhookTime(eventTime);
         Map<String, String> placeholders = new HashMap<>();
@@ -134,21 +140,21 @@ public final class DiscordWebhookService {
         // Avoid emitting ISO timestamp fields here to keep output format consistent.
 
         Map<String, Object> payload = new HashMap<>();
-        payload.put("username", config.webhook.username);
+        payload.put("username", activeConfig.webhook.username);
 
         String content = replacePlaceholders(actionConfig.content, placeholders);
         if (!content.isBlank()) {
             payload.put("content", content);
         }
 
-        if (config.webhook.avatarUrl != null && !config.webhook.avatarUrl.isBlank()) {
-            payload.put("avatar_url", replacePlaceholders(config.webhook.avatarUrl, placeholders));
+        if (activeConfig.webhook.avatarUrl != null && !activeConfig.webhook.avatarUrl.isBlank()) {
+            payload.put("avatar_url", replacePlaceholders(activeConfig.webhook.avatarUrl, placeholders));
         }
         payload.put("embeds", List.of(embed));
         return payload;
     }
 
-    private DiscordConfig.ActionWebhookConfig resolveActionConfig(String actionKey) {
+    private DiscordConfig.ActionWebhookConfig resolveActionConfig(DiscordConfig config, String actionKey) {
         if (config.actions == null || config.actions.isEmpty()) {
             return null;
         }

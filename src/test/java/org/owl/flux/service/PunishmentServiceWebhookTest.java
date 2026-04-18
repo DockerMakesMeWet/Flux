@@ -88,6 +88,64 @@ class PunishmentServiceWebhookTest {
     }
 
     @Test
+    void createPersistsTemplateStepAndSendsWebhookContextFields() {
+        ProxyServer server = mock(ProxyServer.class);
+        when(server.getAllPlayers()).thenReturn(List.of());
+        PunishmentRepository punishmentRepository = mock(PunishmentRepository.class);
+        ActionIdService actionIdService = mock(ActionIdService.class);
+        when(actionIdService.nextUniqueId()).thenReturn("TMP101");
+        MessageService messageService = mock(MessageService.class);
+        DiscordWebhookService discordWebhookService = mock(DiscordWebhookService.class);
+
+        PunishmentService service = new PunishmentService(
+                server,
+                punishmentRepository,
+                mock(ModerationActionRepository.class),
+                actionIdService,
+                messageService,
+                discordWebhookService
+        );
+
+        service.create(new PunishmentRequest(
+                mock(CommandSource.class),
+                new TargetProfile("uuid-1", "TargetUser", "203.0.113.10", null),
+                PunishmentType.BAN,
+                Duration.ofDays(1),
+                "Tiered template reason",
+                "hacking",
+                2,
+                "2nd offense",
+                null,
+                false
+        ));
+
+        ArgumentCaptor<PunishmentRecord> recordCaptor = ArgumentCaptor.forClass(PunishmentRecord.class);
+        verify(punishmentRepository).save(recordCaptor.capture());
+        assertEquals("hacking", recordCaptor.getValue().metadata().get("template"));
+        assertEquals("2nd offense", recordCaptor.getValue().metadata().get("template_step"));
+        assertEquals("2", recordCaptor.getValue().metadata().get("template_step_number"));
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, String>> contextCaptor = ArgumentCaptor.forClass((Class<Map<String, String>>) (Class<?>) Map.class);
+        verify(discordWebhookService).sendAction(
+                eq("ban"),
+                eq("TargetUser"),
+                eq("Console"),
+                eq("Tiered template reason"),
+                eq("TMP101"),
+                eq("BAN"),
+                eq(false),
+                contextCaptor.capture()
+        );
+
+        Map<String, String> context = contextCaptor.getValue();
+        assertEquals("hacking", context.get("template"));
+        assertEquals("2nd offense", context.get("template_step"));
+        assertEquals("2", context.get("template_step_number"));
+        assertEquals("N/A", context.get("step_down_step"));
+    }
+
+    @Test
     void createTimedBanUsesPersistedEndTimeForBanScreen() {
         ProxyServer server = mock(ProxyServer.class);
         when(server.getAllPlayers()).thenReturn(List.of());

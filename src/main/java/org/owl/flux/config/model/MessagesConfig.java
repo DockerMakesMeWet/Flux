@@ -186,7 +186,7 @@ public final class MessagesConfig {
         public String checkDetailStatus = "<gray>Active:</gray> <white><active></white> <gray>| Voided:</gray> <white><voided></white> <gray>| Void Reason:</gray> <white><void_reason></white>";
 
         @Setting("check-detail-meta")
-        public String checkDetailMeta = "<gray>IP Punishment:</gray> <white><ip_punishment></white> <gray>| Template:</gray> <white><template></white>";
+        public String checkDetailMeta = "<gray>IP Punishment:</gray> <white><ip_punishment></white> <gray>| Template:</gray> <white><template></white> <gray>| Template Step:</gray> <white><template_step></white>";
 
         @Setting("check-summary-entry")
         public String checkSummaryEntry = "<gray>-</gray> <white><id></white> <yellow><type></yellow> <gray><reason></gray> <dark_gray>(expires=<expires><void_note>)</dark_gray>";

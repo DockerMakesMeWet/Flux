@@ -265,7 +265,7 @@ class FluxCommandRegistrarWebhookTest {
         invoke(registrar, "runVoid", invocation);
 
         verify(punishmentService).voidAction("ABC123", "invalid action");
-        verify(punishmentService).sendVoidWebhook("ABC123", source, true, "invalid action");
+        verify(punishmentService).sendVoidWebhook("ABC123", source, true, "invalid action", record);
         verify(punishmentService).auditReversalAction(ModerationActionType.VOID, "ABC123", "ABC123", source, "invalid action");
     }
 

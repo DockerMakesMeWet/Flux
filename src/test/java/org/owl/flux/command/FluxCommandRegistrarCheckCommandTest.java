@@ -64,7 +64,10 @@ class FluxCommandRegistrarCheckCommandTest {
                 false,
                 false,
                 false,
-                Map.of("template", "hacking")
+                Map.of(
+                        "template", "hacking",
+                        "template_step", "2nd offense"
+                )
         );
         when(punishmentService.findById("AB123")).thenReturn(Optional.of(record));
         when(punishmentService.isIpPunishment(record)).thenReturn(true);
@@ -78,7 +81,7 @@ class FluxCommandRegistrarCheckCommandTest {
         verify(messageService).sendCheckHeader(source, "AB123");
         verify(messageService).sendCheckDetailType(source, "BAN");
         verify(messageService).sendCheckDetailIssuer(source, "Moderator");
-        verify(messageService).sendCheckDetailMeta(source, "true", "hacking");
+        verify(messageService).sendCheckDetailMeta(source, "true", "hacking", "2nd offense");
         verify(messageService).sendCheckFooter(source, "AB123");
     }
 
