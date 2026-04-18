@@ -56,7 +56,11 @@ public final class FluxBootstrap {
             throw new IllegalStateException("Failed to install default Flux configuration files.", exception);
         }
 
-        this.runtime = buildRuntime(configLoader.load());
+        ConfigurationBundle configuration = configLoader.load();
+        Runtime next = buildRuntime(configuration);
+        next.start(server, plugin, logger);
+        this.runtime = next;
+        updateServiceRegistry(configuration);
         runtime.mastersService().refreshAsync();
         FluxStartupBanner.sendBanner(logger, resolveVersion());
 
@@ -74,18 +78,35 @@ public final class FluxBootstrap {
 
     public synchronized boolean reload() {
         Runtime previous = this.runtime;
+        ConfigurationBundle configuration;
         Runtime next;
         try {
-            next = buildRuntime(configLoader.load());
+            configuration = configLoader.load();
+            next = buildRuntime(configuration);
         } catch (Exception exception) {
             logger.error("Failed to reload Flux configuration.", exception);
             return false;
         }
 
-        this.runtime = next;
         if (previous != null) {
             previous.shutdown(server, plugin);
         }
+
+        try {
+            next.start(server, plugin, logger);
+        } catch (Exception exception) {
+            logger.error("Failed to activate reloaded Flux runtime.", exception);
+            try {
+                next.shutdown(server, plugin);
+            } catch (Exception ignored) {
+                // Best-effort cleanup when activation fails.
+            }
+            this.runtime = null;
+            return false;
+        }
+
+        this.runtime = next;
+        updateServiceRegistry(configuration);
 
         try {
             return next.mastersService().refreshAsync().get(10, TimeUnit.SECONDS);
@@ -133,8 +154,6 @@ public final class FluxBootstrap {
                 messageService
         );
 
-        server.getEventManager().register(plugin, moderationListener);
-
         FluxCommandRegistrar commandRegistrar = new FluxCommandRegistrar(
                 plugin,
                 server,
@@ -150,27 +169,17 @@ public final class FluxBootstrap {
                 this::reload,
                 resolveVersion()
         );
-        commandRegistrar.registerAll();
 
-        ScheduledTask muteExpiryNotificationTask = server.getScheduler()
-                .buildTask(plugin, () -> {
-                    try {
-                        punishmentService.processMuteExpiryNotificationsForOnlinePlayers();
-                    } catch (RuntimeException exception) {
-                        logger.warn("Flux mute-expiry notification poll failed.", exception);
-                    }
-                })
-                .repeat(1, TimeUnit.SECONDS)
-                .schedule();
+        return new Runtime(databaseManager, commandRegistrar, mastersService, moderationListener, punishmentService);
+    }
 
+    private void updateServiceRegistry(ConfigurationBundle configuration) {
         serviceRegistry.clear();
         serviceRegistry.register(ProxyServer.class, server);
         serviceRegistry.register(Logger.class, logger);
         serviceRegistry.register(Path.class, dataDirectory);
         serviceRegistry.register(FluxConfigLoader.class, configLoader);
         serviceRegistry.register(ConfigurationBundle.class, configuration);
-
-        return new Runtime(databaseManager, commandRegistrar, mastersService, muteExpiryNotificationTask);
     }
 
     private String resolveVersion() {
@@ -180,14 +189,52 @@ public final class FluxBootstrap {
                 .orElse("unknown");
     }
 
-    private record Runtime(
-            DatabaseManager databaseManager,
-            FluxCommandRegistrar commandRegistrar,
-            MastersService mastersService,
-            ScheduledTask muteExpiryNotificationTask
-    ) {
+    private static final class Runtime {
+        private final DatabaseManager databaseManager;
+        private final FluxCommandRegistrar commandRegistrar;
+        private final MastersService mastersService;
+        private final ModerationListener moderationListener;
+        private final PunishmentService punishmentService;
+        private ScheduledTask muteExpiryNotificationTask;
+
+        private Runtime(
+                DatabaseManager databaseManager,
+                FluxCommandRegistrar commandRegistrar,
+                MastersService mastersService,
+                ModerationListener moderationListener,
+                PunishmentService punishmentService
+        ) {
+            this.databaseManager = databaseManager;
+            this.commandRegistrar = commandRegistrar;
+            this.mastersService = mastersService;
+            this.moderationListener = moderationListener;
+            this.punishmentService = punishmentService;
+        }
+
+        void start(ProxyServer server, Object plugin, Logger logger) {
+            server.getEventManager().register(plugin, moderationListener);
+            commandRegistrar.registerAll();
+            muteExpiryNotificationTask = server.getScheduler()
+                    .buildTask(plugin, () -> {
+                        try {
+                            punishmentService.processMuteExpiryNotificationsForOnlinePlayers();
+                        } catch (RuntimeException exception) {
+                            logger.warn("Flux mute-expiry notification poll failed.", exception);
+                        }
+                    })
+                    .repeat(1, TimeUnit.SECONDS)
+                    .schedule();
+        }
+
+        MastersService mastersService() {
+            return mastersService;
+        }
+
         void shutdown(ProxyServer server, Object plugin) {
-            muteExpiryNotificationTask.cancel();
+            if (muteExpiryNotificationTask != null) {
+                muteExpiryNotificationTask.cancel();
+                muteExpiryNotificationTask = null;
+            }
             commandRegistrar.unregisterAll();
             server.getEventManager().unregisterListeners(plugin);
             databaseManager.stop();

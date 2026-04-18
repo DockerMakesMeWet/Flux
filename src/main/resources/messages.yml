@@ -71,21 +71,103 @@ staff:
   void-broadcast-hover: "<yellow><bold>Void Details</bold></yellow><newline><gray>Void ID:</gray> <white><id></white><newline><gray>Target ID:</gray> <white><target_id></white><newline><gray>Executor:</gray> <white><executor></white><newline><gold>Click to suggest /check <target_id></gold>"
 
 commands:
+  # Wrapper used when showing command usage text.
+  # Placeholders: <usage>
+  usage-format: "<red>Usage: <white><usage></white></red>"
+
+  # Per-command usage strings.
+  # Placeholders: none
+  usage-ban: "/ban <user> [duration] <reason/#template>"
+  usage-mute: "/mute <user> [duration] <reason/#template>"
+  usage-warn: "/warn <user> <reason/#template>"
+  usage-kick: "/kick <user> <reason/#template>"
+  usage-ipban: "/ipban <user/ip> [duration] <reason/#template>"
+  usage-unban: "/unban <user/ip/id>"
+  usage-unmute: "/unmute <user/id>"
+  usage-void: "/void <id>"
+  usage-history: "/history <user> [page]"
+  usage-alts: "/alts <user> [page]"
+  usage-iphistory: "/iphistory <ip/user> [page]"
+  usage-check: "/check <id>"
+  usage-checkplayer: "/checkplayer <user> [page]"
+  usage-checkip: "/checkip <ip/user> [page]"
+  usage-flux: "/flux [reload|ver|info|version]"
+
+  # Generic command parsing errors.
+  # Placeholders: <page>
+  invalid-duration: "<red>Invalid duration format.</red>"
+  template-not-found: "<red>Template not found.</red>"
+  invalid-page: "<red>Invalid page <white><page></white>. Use a positive number.</red>"
+
   # Confirmation for creating an action.
   # Placeholders: <type> <target> <id>
   action-created: "<yellow>Action logged: <white><type></white> on <white><target></white> <gray>(ID: <id>)</gray></yellow>"
+
+  # Extra verbose summary shown after successful punishments.
+  # Placeholders: <id>
+  punishment-summary-header: "<gray>===</gray> <yellow>Punishment summary for <white><id></white></yellow> <gray>===</gray>"
+  punishment-summary-footer: "<gray>===</gray> <yellow>End punishment summary for <white><id></white></yellow> <gray>===</gray>"
 
   # Confirmation for updating punishment state.
   # Placeholders: <target>
   action-updated: "<yellow>Updated punishment state for <white><target></white>.</yellow>"
 
+  # Confirmation for voiding an action.
+  # Placeholders: <id>
+  void-updated: "<yellow>Voided punishment/action <white><id></white>.</yellow>"
+
   # Shown when a punishment/action cannot be found.
   # Placeholders: none
   action-not-found: "<red>No matching punishment was found.</red>"
 
+  # Header for /check output.
+  # Placeholders: <id>
+  check-header: "<gray>===</gray> <yellow>Checking action <white><id></white></yellow> <gray>===</gray>"
+
+  # Footer for /check output.
+  # Placeholders: <id>
+  check-footer: "<gray>===</gray> <yellow>End check for <white><id></white></yellow> <gray>===</gray>"
+
+  # Detailed /check lines.
+  # Placeholders: <type> <target> <ip> <issuer> <reason> <started> <duration> <expires> <active> <voided> <ip_punishment> <template>
+  check-detail-type: "<gray>Type:</gray> <white><type></white>"
+  check-detail-target: "<gray>Target:</gray> <white><target></white> <dark_gray>(ip=<ip>)</dark_gray>"
+  check-detail-issuer: "<gray>Issuer:</gray> <white><issuer></white>"
+  check-detail-reason: "<gray>Reason:</gray> <white><reason></white>"
+  check-detail-started: "<gray>Started:</gray> <white><started></white>"
+  check-detail-duration: "<gray>Duration:</gray> <white><duration></white>"
+  check-detail-expires: "<gray>Expires:</gray> <white><expires></white>"
+  check-detail-status: "<gray>Active:</gray> <white><active></white> <gray>| Voided:</gray> <white><voided></white>"
+  check-detail-meta: "<gray>IP Punishment:</gray> <white><ip_punishment></white> <gray>| Template:</gray> <white><template></white>"
+
+  # Summary list entries used by /checkplayer and /checkip.
+  # Placeholders: <id> <type> <reason> <expires> <target>
+  check-summary-entry: "<gray>-</gray> <white><id></white> <yellow><type></yellow> <gray><reason></gray> <dark_gray>(expires=<expires>)</dark_gray>"
+  check-summary-entry-with-target: "<gray>-</gray> <white><id></white> <yellow><type></yellow> <gray><reason></gray> <dark_gray>(target=<target>, expires=<expires>)</dark_gray>"
+
+  # Header for /checkplayer output.
+  # Placeholders: <target>
+  checkplayer-header: "<gray>===</gray> <yellow>Checking active punishments for <white><target></white></yellow> <gray>===</gray>"
+
+  # Footer for /checkplayer output.
+  # Placeholders: <target> <count>
+  checkplayer-footer: "<gray>===</gray> <yellow>Found <white><count></white> active entries for <white><target></white></yellow> <gray>===</gray>"
+
+  # Header for /checkip output.
+  # Placeholders: <target>
+  checkip-header: "<gray>===</gray> <yellow>Checking active punishments for IP <white><target></white></yellow> <gray>===</gray>"
+
+  # Footer for /checkip output.
+  # Placeholders: <target> <count>
+  checkip-footer: "<gray>===</gray> <yellow>Found <white><count></white> active entries for IP <white><target></white></yellow> <gray>===</gray>"
+
   # Header for history output.
   # Placeholders: <target>
-  history-header: "<yellow>History for <white><target></white>:</yellow>"
+  history-header: "<gray>===</gray> <yellow>History of <white><target></white></yellow> <gray>===</gray>"
+
+  # Footer for history output.
+  # Placeholders: <target> <count>
+  history-footer: "<gray>===</gray> <yellow>End history of <white><target></white> (<count>)</yellow> <gray>===</gray>"
 
   # Entry line for history output.
   # Placeholders: <id> <type> <reason> <voided>
@@ -103,13 +185,29 @@ commands:
   # Placeholders: <username>
   alts-entry: "<gray>•</gray> <white><username></white>"
 
+  # Entry line for account listing when querying /iphistory by IP literal.
+  # Placeholders: <account> <seen>
+  iphistory-account-entry: "<gray>-</gray> <white><account></white> <dark_gray>(<seen>)</dark_gray>"
+
   # Header for IP history output.
   # Placeholders: <target>
-  iphistory-header: "<yellow>IP history for <white><target></white>:</yellow>"
+  iphistory-header: "<gray>===</gray> <yellow>IP history for <white><target></white></yellow> <gray>===</gray>"
+
+  # Footer for IP history output.
+  # Placeholders: <target> <count>
+  iphistory-footer: "<gray>===</gray> <yellow>End IP history of <white><target></white> (<count>)</yellow> <gray>===</gray>"
 
   # Entry line for IP history output.
   # Placeholders: <ip> <seen>
   iphistory-entry: "<gray>•</gray> <white><ip></white> <dark_gray>(<seen>)</dark_gray>"
+
+  # Pagination controls and status line.
+  # Placeholders: <page> <pages>
+  pagination-prev: "<yellow><bold><<</bold></yellow>"
+  pagination-prev-disabled: "<dark_gray><bold><<</bold></dark_gray>"
+  pagination-viewing: "<yellow>Viewing page <white><page></white> out of <white><pages></white></yellow>"
+  pagination-next: "<yellow><bold>>></bold></yellow>"
+  pagination-next-disabled: "<dark_gray><bold>>></bold></dark_gray>"
 
   # Reload success message when masters refresh also succeeds.
   # Placeholders: none

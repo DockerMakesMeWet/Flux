@@ -34,10 +34,11 @@ class FluxCommandRegistrarCheckCommandTest {
         FluxCommandRegistrar registrar = registrar(messageService, mock(TargetResolver.class), mock(PunishmentService.class),
                 mock(PunishmentRepository.class), mock(PlayerRepository.class));
         CommandSource source = mock(CommandSource.class);
+        when(messageService.usageCheck()).thenReturn("/check <id>");
 
         invoke(registrar, "runCheck", invocation(source));
 
-        verify(messageService).sendRawError(source, "Usage: /check <id>");
+        verify(messageService).sendUsage(source, "/check <id>");
     }
 
     @Test
@@ -71,11 +72,11 @@ class FluxCommandRegistrarCheckCommandTest {
 
         invoke(registrar, "runCheck", invocation(source, "ab123"));
 
-        verify(messageService).send(source, "<gray>Punishment <white><id></white>:</gray>", Map.of("id", "AB123"));
-        verify(messageService).send(source, "<gray>Issuer:</gray> <white><issuer></white>", Map.of("issuer", "Moderator"));
-        verify(messageService).send(source,
-                "<gray>IP Punishment:</gray> <white><ip_punishment></white> <gray>| Template:</gray> <white><template></white>",
-                Map.of("ip_punishment", "true", "template", "hacking"));
+        verify(messageService).sendCheckHeader(source, "AB123");
+        verify(messageService).sendCheckDetailType(source, "BAN");
+        verify(messageService).sendCheckDetailIssuer(source, "Moderator");
+        verify(messageService).sendCheckDetailMeta(source, "true", "hacking");
+        verify(messageService).sendCheckFooter(source, "AB123");
     }
 
     @Test
@@ -110,10 +111,7 @@ class FluxCommandRegistrarCheckCommandTest {
 
         invoke(registrar, "runCheck", invocation(source, "ab124"));
 
-        verify(messageService).send(source, "<gray>Target:</gray> <white><target></white> <dark_gray>(ip=<ip>)</dark_gray>", Map.of(
-                "target", "NeverSeenUser",
-                "ip", "203.0.113.11"
-        ));
+        verify(messageService).sendCheckDetailTarget(source, "NeverSeenUser", "203.0.113.11");
     }
 
     @Test
@@ -125,7 +123,7 @@ class FluxCommandRegistrarCheckCommandTest {
                 punishmentRepository, mock(PlayerRepository.class));
         CommandSource source = mock(CommandSource.class);
 
-        when(targetResolver.resolvePlayer("TargetUser"))
+        when(targetResolver.resolvePunishmentTarget("TargetUser"))
                 .thenReturn(Optional.of(new TargetProfile("target-uuid", "TargetUser", "203.0.113.10", null)));
         when(punishmentRepository.activeByTarget("target-uuid", "TargetUser"))
                 .thenReturn(List.of(punishment("AB001", "target-uuid", "203.0.113.10")));
@@ -133,7 +131,29 @@ class FluxCommandRegistrarCheckCommandTest {
         invoke(registrar, "runCheckPlayer", invocation(source, "TargetUser"));
 
         verify(punishmentRepository).activeByTarget("target-uuid", "TargetUser");
-        verify(messageService).send(source, "<gray>Active punishments for <target>:</gray>", Map.of("target", "TargetUser"));
+        verify(messageService).sendCheckPlayerHeader(source, "TargetUser");
+        verify(messageService).sendPaginationFooter(source, 1, 1, "/checkplayer TargetUser");
+    }
+
+    @Test
+    void runCheckPlayerSupportsNeverSeenUsernameFallback() throws Exception {
+        MessageService messageService = mock(MessageService.class);
+        TargetResolver targetResolver = mock(TargetResolver.class);
+        PunishmentRepository punishmentRepository = mock(PunishmentRepository.class);
+        FluxCommandRegistrar registrar = registrar(messageService, targetResolver, mock(PunishmentService.class),
+                punishmentRepository, mock(PlayerRepository.class));
+        CommandSource source = mock(CommandSource.class);
+
+        when(targetResolver.resolvePunishmentTarget("NeverSeen"))
+                .thenReturn(Optional.of(new TargetProfile(null, "NeverSeen", null, null)));
+        when(punishmentRepository.activeByTarget(null, "NeverSeen"))
+                .thenReturn(List.of(punishment("AB002", null, null)));
+
+        invoke(registrar, "runCheckPlayer", invocation(source, "NeverSeen"));
+
+        verify(punishmentRepository).activeByTarget(null, "NeverSeen");
+        verify(messageService).sendCheckPlayerHeader(source, "NeverSeen");
+        verify(messageService).sendPaginationFooter(source, 1, 1, "/checkplayer NeverSeen");
     }
 
     @Test
@@ -152,8 +172,31 @@ class FluxCommandRegistrarCheckCommandTest {
         invoke(registrar, "runCheckIp", invocation(source, "TargetUser"));
 
         verify(punishmentRepository).activeByIp("203.0.113.10");
-        verify(messageService).send(source, "<gray>Active punishments for IP <ip>:</gray>", Map.of("ip", "203.0.113.10"));
+        verify(messageService).sendCheckIpHeader(source, "203.0.113.10");
+        verify(messageService).sendPaginationFooter(source, 1, 1, "/checkip TargetUser");
         verify(messageService).sendActionNotFound(source);
+    }
+
+    @Test
+    void runHistorySupportsNeverSeenUsernameFallback() throws Exception {
+        MessageService messageService = mock(MessageService.class);
+        TargetResolver targetResolver = mock(TargetResolver.class);
+        PunishmentRepository punishmentRepository = mock(PunishmentRepository.class);
+        FluxCommandRegistrar registrar = registrar(messageService, targetResolver, mock(PunishmentService.class),
+                punishmentRepository, mock(PlayerRepository.class));
+        CommandSource source = mock(CommandSource.class);
+
+        when(targetResolver.resolvePunishmentTarget("NeverSeen"))
+                .thenReturn(Optional.of(new TargetProfile(null, "NeverSeen", null, null)));
+        when(punishmentRepository.historyByTarget(null, "NeverSeen"))
+                .thenReturn(List.of(punishment("HI001", null, null)));
+
+        invoke(registrar, "runHistory", invocation(source, "NeverSeen"));
+
+        verify(punishmentRepository).historyByTarget(null, "NeverSeen");
+        verify(messageService).sendHistoryHeader(source, "NeverSeen");
+        verify(messageService).sendHistoryEntry(source, "HI001", "BAN", "reason", "false");
+        verify(messageService).sendPaginationFooter(source, 1, 1, "/history NeverSeen");
     }
 
     @Test
@@ -162,12 +205,13 @@ class FluxCommandRegistrarCheckCommandTest {
         FluxCommandRegistrar registrar = registrar(messageService, mock(TargetResolver.class), mock(PunishmentService.class),
                 mock(PunishmentRepository.class), mock(PlayerRepository.class));
         CommandSource source = mock(CommandSource.class);
+        when(messageService.usageFlux()).thenReturn("/flux [reload|ver|info|version]");
 
         invoke(registrar, "runFluxRoot", invocation(source, "version", "extra"));
-        verify(messageService).sendRawError(source, "Usage: /flux [reload|ver|info|version]");
+        verify(messageService).sendUsage(source, "/flux [reload|ver|info|version]");
 
         invoke(registrar, "runFluxRoot", invocation(source));
-        verify(messageService).send(source, "<gray>Flux <white><version></white></gray>", Map.of("version", "1.0.0-test"));
+        verify(messageService).sendVersion(source, "1.0.0-test");
     }
 
     private static FluxCommandRegistrar registrar(

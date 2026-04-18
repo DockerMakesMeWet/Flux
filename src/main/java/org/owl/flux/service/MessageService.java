@@ -75,6 +75,82 @@ public final class MessageService {
         source.sendMessage(renderWithPrefix("<red>" + safeText(message) + "</red>", Map.of()));
     }
 
+    public void sendUsage(CommandSource source, String usage) {
+        send(source, messages.commands.usageFormat, Map.of("usage", safeText(usage)));
+    }
+
+    public String usageBan() {
+        return safeText(messages.commands.usageBan);
+    }
+
+    public String usageMute() {
+        return safeText(messages.commands.usageMute);
+    }
+
+    public String usageWarn() {
+        return safeText(messages.commands.usageWarn);
+    }
+
+    public String usageKick() {
+        return safeText(messages.commands.usageKick);
+    }
+
+    public String usageIpBan() {
+        return safeText(messages.commands.usageIpBan);
+    }
+
+    public String usageUnban() {
+        return safeText(messages.commands.usageUnban);
+    }
+
+    public String usageUnmute() {
+        return safeText(messages.commands.usageUnmute);
+    }
+
+    public String usageVoid() {
+        return safeText(messages.commands.usageVoid);
+    }
+
+    public String usageHistory() {
+        return safeText(messages.commands.usageHistory);
+    }
+
+    public String usageAlts() {
+        return safeText(messages.commands.usageAlts);
+    }
+
+    public String usageIpHistory() {
+        return safeText(messages.commands.usageIpHistory);
+    }
+
+    public String usageCheck() {
+        return safeText(messages.commands.usageCheck);
+    }
+
+    public String usageCheckPlayer() {
+        return safeText(messages.commands.usageCheckPlayer);
+    }
+
+    public String usageCheckIp() {
+        return safeText(messages.commands.usageCheckIp);
+    }
+
+    public String usageFlux() {
+        return safeText(messages.commands.usageFlux);
+    }
+
+    public void sendInvalidDuration(CommandSource source) {
+        send(source, messages.commands.invalidDuration, Map.of());
+    }
+
+    public void sendTemplateNotFound(CommandSource source) {
+        send(source, messages.commands.templateNotFound, Map.of());
+    }
+
+    public void sendInvalidPage(CommandSource source, String page) {
+        send(source, messages.commands.invalidPage, Map.of("page", safeText(page)));
+    }
+
     public void sendActionCreated(CommandSource source, String type, String target, String id) {
         send(source, messages.commands.actionCreated, Map.of(
                 "type", safeText(type),
@@ -83,16 +159,136 @@ public final class MessageService {
         ));
     }
 
+    public void sendPunishmentSummaryHeader(CommandSource source, String id) {
+        send(source, messages.commands.punishmentSummaryHeader, Map.of("id", safeText(id)));
+    }
+
+    public void sendPunishmentSummaryFooter(CommandSource source, String id) {
+        send(source, messages.commands.punishmentSummaryFooter, Map.of("id", safeText(id)));
+    }
+
     public void sendActionUpdated(CommandSource source, String target) {
         send(source, messages.commands.actionUpdated, Map.of("target", safeText(target)));
+    }
+
+    public void sendVoidUpdated(CommandSource source, String id) {
+        send(source, messages.commands.voidUpdated, Map.of("id", safeText(id)));
     }
 
     public void sendActionNotFound(CommandSource source) {
         send(source, messages.commands.actionNotFound, Map.of());
     }
 
+    public void sendCheckHeader(CommandSource source, String id) {
+        send(source, messages.commands.checkHeader, Map.of("id", safeText(id)));
+    }
+
+    public void sendCheckFooter(CommandSource source, String id) {
+        send(source, messages.commands.checkFooter, Map.of("id", safeText(id)));
+    }
+
+    public void sendCheckDetailType(CommandSource source, String type) {
+        send(source, messages.commands.checkDetailType, Map.of("type", safeText(type)));
+    }
+
+    public void sendCheckDetailTarget(CommandSource source, String target, String ip) {
+        send(source, messages.commands.checkDetailTarget, Map.of(
+                "target", safeText(target),
+                "ip", safeText(ip)
+        ));
+    }
+
+    public void sendCheckDetailIssuer(CommandSource source, String issuer) {
+        send(source, messages.commands.checkDetailIssuer, Map.of("issuer", safeText(issuer)));
+    }
+
+    public void sendCheckDetailReason(CommandSource source, String reason) {
+        send(source, messages.commands.checkDetailReason, Map.of("reason", safeText(reason)));
+    }
+
+    public void sendCheckDetailStarted(CommandSource source, String started) {
+        send(source, messages.commands.checkDetailStarted, Map.of("started", safeText(started)));
+    }
+
+    public void sendCheckDetailDuration(CommandSource source, String duration) {
+        send(source, messages.commands.checkDetailDuration, Map.of("duration", safeText(duration)));
+    }
+
+    public void sendCheckDetailExpires(CommandSource source, String expires) {
+        send(source, messages.commands.checkDetailExpires, Map.of("expires", safeText(expires)));
+    }
+
+    public void sendCheckDetailStatus(CommandSource source, String active, String voided) {
+        send(source, messages.commands.checkDetailStatus, Map.of(
+                "active", safeText(active),
+                "voided", safeText(voided)
+        ));
+    }
+
+    public void sendCheckDetailMeta(CommandSource source, String ipPunishment, String template) {
+        send(source, messages.commands.checkDetailMeta, Map.of(
+                "ip_punishment", safeText(ipPunishment),
+                "template", safeText(template)
+        ));
+    }
+
+    public void sendCheckPlayerHeader(CommandSource source, String target) {
+        send(source, messages.commands.checkPlayerHeader, Map.of("target", safeText(target)));
+    }
+
+    public void sendCheckPlayerFooter(CommandSource source, String target, int count) {
+        send(source, messages.commands.checkPlayerFooter, Map.of(
+                "target", safeText(target),
+                "count", Integer.toString(Math.max(0, count))
+        ));
+    }
+
+    public void sendCheckIpHeader(CommandSource source, String target) {
+        send(source, messages.commands.checkIpHeader, Map.of("target", safeText(target)));
+    }
+
+    public void sendCheckIpFooter(CommandSource source, String target, int count) {
+        send(source, messages.commands.checkIpFooter, Map.of(
+                "target", safeText(target),
+                "count", Integer.toString(Math.max(0, count))
+        ));
+    }
+
+    public void sendCheckSummaryEntry(CommandSource source, String id, String type, String reason, String expires) {
+        send(source, messages.commands.checkSummaryEntry, Map.of(
+                "id", safeText(id),
+                "type", safeText(type),
+                "reason", safeText(reason),
+                "expires", safeText(expires)
+        ));
+    }
+
+    public void sendCheckSummaryEntryWithTarget(
+            CommandSource source,
+            String id,
+            String type,
+            String reason,
+            String target,
+            String expires
+    ) {
+        send(source, messages.commands.checkSummaryEntryWithTarget, Map.of(
+                "id", safeText(id),
+                "type", safeText(type),
+                "reason", safeText(reason),
+                "target", safeText(target),
+                "expires", safeText(expires)
+        ));
+    }
+
     public void sendHistoryHeader(CommandSource source, String target) {
         send(source, messages.commands.historyHeader, Map.of("target", safeText(target)));
+    }
+
+    public void sendHistoryFooter(CommandSource source, String target, int count) {
+        send(source, messages.commands.historyFooter, Map.of(
+                "target", safeText(target),
+                "count", Integer.toString(Math.max(0, count))
+        ));
     }
 
     public void sendHistoryEntry(CommandSource source, String id, String type, String reason, String voided) {
@@ -120,8 +316,57 @@ public final class MessageService {
         send(source, messages.commands.ipHistoryHeader, Map.of("target", safeText(target)));
     }
 
+    public void sendIpHistoryFooter(CommandSource source, String target, int count) {
+        send(source, messages.commands.ipHistoryFooter, Map.of(
+                "target", safeText(target),
+                "count", Integer.toString(Math.max(0, count))
+        ));
+    }
+
     public void sendIpHistoryEntry(CommandSource source, String ip, String seen) {
         send(source, messages.commands.ipHistoryEntry, Map.of("ip", safeText(ip), "seen", safeText(seen)));
+    }
+
+    public void sendIpHistoryAccountEntry(CommandSource source, String account, String seen) {
+        send(source, messages.commands.ipHistoryAccountEntry, Map.of(
+                "account", safeText(account),
+                "seen", safeText(seen)
+        ));
+    }
+
+    public void sendPaginationFooter(CommandSource source, int page, int totalPages, String commandBase) {
+        int normalizedPage = Math.max(1, page);
+        int normalizedTotalPages = Math.max(1, totalPages);
+        Map<String, String> placeholders = Map.of(
+                "page", Integer.toString(normalizedPage),
+                "pages", Integer.toString(normalizedTotalPages)
+        );
+
+        Component prefix = component(messages.prefix, Map.of());
+        Component previous = component(
+                normalizedPage > 1 ? messages.commands.paginationPrev : messages.commands.paginationPrevDisabled,
+                placeholders
+        );
+        if (normalizedPage > 1 && commandBase != null && !commandBase.isBlank()) {
+            previous = previous.clickEvent(ClickEvent.runCommand(commandBase + " " + (normalizedPage - 1)));
+        }
+
+        Component center = component(messages.commands.paginationViewing, placeholders);
+
+        Component next = component(
+                normalizedPage < normalizedTotalPages ? messages.commands.paginationNext : messages.commands.paginationNextDisabled,
+                placeholders
+        );
+        if (normalizedPage < normalizedTotalPages && commandBase != null && !commandBase.isBlank()) {
+            next = next.clickEvent(ClickEvent.runCommand(commandBase + " " + (normalizedPage + 1)));
+        }
+
+        source.sendMessage(prefix
+                .append(previous)
+                .append(Component.space())
+                .append(center)
+                .append(Component.space())
+                .append(next));
     }
 
     public void sendUnmutedNotice(CommandSource source) {
