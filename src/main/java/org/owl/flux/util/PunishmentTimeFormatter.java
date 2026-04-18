@@ -2,11 +2,14 @@ package org.owl.flux.util;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 
 public final class PunishmentTimeFormatter {
     public static final String PERMANENT_LABEL = "Permanent";
     public static final String NEVER_LABEL = "Never";
+    private static final DateTimeFormatter HUMAN_UTC_FORMATTER =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss 'UTC'").withZone(ZoneOffset.UTC);
 
     private PunishmentTimeFormatter() {
     }
@@ -30,7 +33,11 @@ public final class PunishmentTimeFormatter {
     }
 
     public static String formatTimestamp(Instant instant) {
-        return DateTimeFormatter.ISO_INSTANT.format(instant);
+        return HUMAN_UTC_FORMATTER.format(instant);
+    }
+
+    public static String formatTimestampHumanUtc(Instant instant) {
+        return formatTimestamp(instant);
     }
 
     public static boolean isPermanent(Instant endTime) {

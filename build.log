@@ -1,0 +1,98 @@
+> Task :clean
+
+> Task :compileJava
+
+Note: C:\code\Flux\src\main\java\org\owl\flux\listener\ModerationListener.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+> Task :processResources
+> Task :classes
+> Task :jar
+> Task :assemble
+> Task :shadowJar
+
+> Task :compileTestJava FAILED
+C:\code\Flux\src\test\java\org\owl\flux\command\FluxCommandRegistrarWebhookTest.java:373: error: method punishment(String,Map<String,String>) is already defined in class FluxCommandRegistrarWebhookTest
+    private static PunishmentRecord punishment(String id, Map<String, String> metadata) {
+                                    ^
+C:\code\Flux\src\test\java\org\owl\flux\command\FluxCommandRegistrarCheckCommandTest.java:52: error: no suitable constructor found for PunishmentRecord(String,PunishmentType,<null>,<null>,<null>,String,String,Instant,Instant,boolean,boolean,Map<String,String>)
+        PunishmentRecord record = new PunishmentRecord(
+                                  ^
+    constructor PunishmentRecord.PunishmentRecord(String,PunishmentType,String,String,String,String,Instant,Instant,boolean,boolean,Map<String,String>) is not applicable
+      (actual and formal argument lists differ in length)
+    constructor PunishmentRecord.PunishmentRecord(String,PunishmentType,String,String,String,String,String,Instant,Instant,boolean,boolean,boolean,boolean,Map<String,String>) is not applicable
+      (actual and formal argument lists differ in length)
+C:\code\Flux\src\test\java\org\owl\flux\command\FluxCommandRegistrarCheckCommandTest.java:91: error: no suitable constructor found for PunishmentRecord(String,PunishmentType,String,String,String,String,Instant,<null>,boolean,boolean,boolean,boolean,Map<Object,Object>)
+        PunishmentRecord record = new PunishmentRecord(
+                                  ^
+    constructor PunishmentRecord.PunishmentRecord(String,PunishmentType,String,String,String,String,Instant,Instant,boolean,boolean,Map<String,String>) is not applicable
+      (actual and formal argument lists differ in length)
+    constructor PunishmentRecord.PunishmentRecord(String,PunishmentType,String,String,String,String,String,Instant,Instant,boolean,boolean,boolean,boolean,Map<String,String>) is not applicable
+      (actual and formal argument lists differ in length)
+C:\code\Flux\src\test\java\org\owl\flux\command\FluxCommandRegistrarCheckCommandTest.java:205: error: no suitable constructor found for PunishmentRecord(String,PunishmentType,String,String,<null>,String,String,Instant,<null>,boolean,boolean,Map<Object,Object>)
+        return new PunishmentRecord(
+               ^
+    constructor PunishmentRecord.PunishmentRecord(String,PunishmentType,String,String,String,String,Instant,Instant,boolean,boolean,Map<String,String>) is not applicable
+      (actual and formal argument lists differ in length)
+    constructor PunishmentRecord.PunishmentRecord(String,PunishmentType,String,String,String,String,String,Instant,Instant,boolean,boolean,boolean,boolean,Map<String,String>) is not applicable
+      (actual and formal argument lists differ in length)
+C:\code\Flux\src\test\java\org\owl\flux\data\repository\PunishmentRepositoryTest.java:460: error: method findPendingJoinNotices in class PunishmentRepository cannot be applied to given types;
+        List<PunishmentRecord> secondPending = punishmentRepository.findPendingJoinNotices("TargetUser");
+                                                                   ^
+  required: String,String
+  found:    String
+  reason: actual and formal argument lists differ in length
+Note: C:\code\Flux\src\test\java\org\owl\flux\listener\ModerationListenerTest.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+Note: C:\code\Flux\src\test\java\org\owl\flux\listener\ModerationListenerTest.java uses unchecked or unsafe operations.
+Note: Recompile with -Xlint:unchecked for details.
+5 errors
+
+[Incubating] Problems report is available at: file:///C:/code/Flux/build/reports/problems/problems-report.html
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':compileTestJava'.
+> Compilation failed; see the compiler output below.
+  Note: C:\code\Flux\src\test\java\org\owl\flux\listener\ModerationListenerTest.java uses or overrides a deprecated API.
+  C:\code\Flux\src\test\java\org\owl\flux\data\repository\PunishmentRepositoryTest.java:460: error: method findPendingJoinNotices in class PunishmentRepository cannot be applied to given types;
+          List<PunishmentRecord> secondPending = punishmentRepository.findPendingJoinNotices("TargetUser");
+                                                                     ^
+    required: String,String
+    found:    String
+    reason: actual and formal argument lists differ in length
+  C:\code\Flux\src\test\java\org\owl\flux\command\FluxCommandRegistrarCheckCommandTest.java:52: error: no suitable constructor found for PunishmentRecord(String,PunishmentType,<null>,<null>,<null>,String,String,Instant,Instant,boolean,boolean,Map<String,String>)
+          PunishmentRecord record = new PunishmentRecord(
+                                    ^
+      constructor PunishmentRecord.PunishmentRecord(String,PunishmentType,String,String,String,String,Instant,Instant,boolean,boolean,Map<String,String>) is not applicable
+        (actual and formal argument lists differ in length)
+      constructor PunishmentRecord.PunishmentRecord(String,PunishmentType,String,String,String,String,String,Instant,Instant,boolean,boolean,boolean,boolean,Map<String,String>) is not applicable
+        (actual and formal argument lists differ in length)
+  C:\code\Flux\src\test\java\org\owl\flux\command\FluxCommandRegistrarCheckCommandTest.java:91: error: no suitable constructor found for PunishmentRecord(String,PunishmentType,String,String,String,String,Instant,<null>,boolean,boolean,boolean,boolean,Map<Object,Object>)
+          PunishmentRecord record = new PunishmentRecord(
+                                    ^
+      constructor PunishmentRecord.PunishmentRecord(String,PunishmentType,String,String,String,String,Instant,Instant,boolean,boolean,Map<String,String>) is not applicable
+        (actual and formal argument lists differ in length)
+      constructor PunishmentRecord.PunishmentRecord(String,PunishmentType,String,String,String,String,String,Instant,Instant,boolean,boolean,boolean,boolean,Map<String,String>) is not applicable
+        (actual and formal argument lists differ in length)
+  C:\code\Flux\src\test\java\org\owl\flux\command\FluxCommandRegistrarCheckCommandTest.java:205: error: no suitable constructor found for PunishmentRecord(String,PunishmentType,String,String,<null>,String,String,Instant,<null>,boolean,boolean,Map<Object,Object>)
+          return new PunishmentRecord(
+                 ^
+      constructor PunishmentRecord.PunishmentRecord(String,PunishmentType,String,String,String,String,Instant,Instant,boolean,boolean,Map<String,String>) is not applicable
+        (actual and formal argument lists differ in length)
+      constructor PunishmentRecord.PunishmentRecord(String,PunishmentType,String,String,String,String,String,Instant,Instant,boolean,boolean,boolean,boolean,Map<String,String>) is not applicable
+        (actual and formal argument lists differ in length)
+  Note: Recompile with -Xlint:deprecation for details.
+  Note: C:\code\Flux\src\test\java\org\owl\flux\listener\ModerationListenerTest.java uses unchecked or unsafe operations.
+  Note: Recompile with -Xlint:unchecked for details.
+  C:\code\Flux\src\test\java\org\owl\flux\command\FluxCommandRegistrarWebhookTest.java:373: error: method punishment(String,Map<String,String>) is already defined in class FluxCommandRegistrarWebhookTest
+      private static PunishmentRecord punishment(String id, Map<String, String> metadata) {
+                                      ^
+  5 errors
+
+* Try:
+> Check your code and dependencies to fix the compilation error(s)
+> Run with --scan to get full insights from a Build Scan (powered by Develocity).
+
+BUILD FAILED in 5s
+6 actionable tasks: 6 executed

@@ -52,11 +52,16 @@ class FluxCommandRegistrarCheckCommandTest {
         PunishmentRecord record = new PunishmentRecord(
                 "AB123",
                 PunishmentType.BAN,
+                null,
+                null,
+                null,
                 "executor-uuid",
                 "Test reason",
                 Instant.parse("2026-01-01T00:00:00Z"),
                 Instant.parse("2026-01-02T00:00:00Z"),
                 true,
+                false,
+                false,
                 false,
                 Map.of("template", "hacking")
         );
@@ -88,6 +93,7 @@ class FluxCommandRegistrarCheckCommandTest {
         PunishmentRecord record = new PunishmentRecord(
                 "AB124",
                 PunishmentType.BAN,
+                null,
                 "203.0.113.11",
                 "NeverSeenUser",
                 "executor-uuid",
@@ -124,12 +130,12 @@ class FluxCommandRegistrarCheckCommandTest {
 
         when(targetResolver.resolvePlayer("TargetUser"))
                 .thenReturn(Optional.of(new TargetProfile("target-uuid", "TargetUser", "203.0.113.10", null)));
-        when(punishmentRepository.activeByTarget("TargetUser"))
+        when(punishmentRepository.activeByTarget("target-uuid", "TargetUser"))
                 .thenReturn(List.of(punishment("AB001", "target-uuid", "203.0.113.10")));
 
         invoke(registrar, "runCheckPlayer", invocation(source, "TargetUser"));
 
-        verify(punishmentRepository).activeByTarget("TargetUser");
+        verify(punishmentRepository).activeByTarget("target-uuid", "TargetUser");
         verify(messageService).send(source, "<gray>Active punishments for <target>:</gray>", Map.of("target", "TargetUser"));
     }
 
@@ -204,11 +210,14 @@ class FluxCommandRegistrarCheckCommandTest {
                 PunishmentType.BAN,
                 targetUuid,
                 targetIp,
+                null,
                 "executor-uuid",
                 "reason",
                 Instant.now(),
                 null,
                 true,
+                false,
+                false,
                 false,
                 Map.of()
         );

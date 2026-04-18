@@ -18,6 +18,7 @@ import org.owl.flux.integration.DiscordWebhookService;
 import org.owl.flux.service.model.PunishmentRequest;
 import org.owl.flux.service.model.PunishmentResult;
 import org.owl.flux.util.NetworkUtil;
+import org.owl.flux.util.PunishmentTimeFormatter;
 
 public final class PunishmentService {
     private static final String CONSOLE_UUID = "00000000-0000-0000-0000-000000000000";
@@ -60,14 +61,16 @@ public final class PunishmentService {
         PunishmentRecord record = persistWithRetryOnIdCollision(request, now, end, active, targetIp, issuedOffline, metadata);
 
         int disconnected = applyImmediateEnforcement(record, request.target());
+        String actionKey = actionKey(record.type());
         discordWebhookService.sendAction(
-                actionKey(record.type()),
+            actionKey,
                 request.target().username(),
                 executorName(request.executor()),
                 record.reason(),
                 record.id(),
                 record.type().name(),
-                request.ipPunishment()
+            request.ipPunishment(),
+            buildActionContext(request, record, actionKey)
         );
         return new PunishmentResult(record, disconnected);
     }
@@ -195,6 +198,11 @@ public final class PunishmentService {
     }
 
     public void sendUnbanWebhook(String target, CommandSource executor, boolean ipPunishment) {
+        Map<String, String> context = new HashMap<>();
+        context.put("related_action_id", "N/A");
+        context.put("duration", "N/A");
+        context.put("template", "N/A");
+        context.put("executor_type", executor instanceof Player ? "PLAYER" : "CONSOLE");
         discordWebhookService.sendAction(
                 "unban",
                 target,
@@ -202,11 +210,17 @@ public final class PunishmentService {
                 "Ban lifted",
                 "N/A",
                 "UNBAN",
-                ipPunishment
+            ipPunishment,
+            context
         );
     }
 
     public void sendUnmuteWebhook(String target, CommandSource executor) {
+        Map<String, String> context = new HashMap<>();
+        context.put("related_action_id", "N/A");
+        context.put("duration", "N/A");
+        context.put("template", "N/A");
+        context.put("executor_type", executor instanceof Player ? "PLAYER" : "CONSOLE");
         discordWebhookService.sendAction(
                 "unmute",
                 target,
@@ -214,11 +228,17 @@ public final class PunishmentService {
                 "Mute lifted",
                 "N/A",
                 "UNMUTE",
-                false
+            false,
+            context
         );
     }
 
     public void sendVoidWebhook(String targetActionId, CommandSource executor, boolean ipPunishment) {
+        Map<String, String> context = new HashMap<>();
+        context.put("related_action_id", targetActionId);
+        context.put("duration", "N/A");
+        context.put("template", "N/A");
+        context.put("executor_type", executor instanceof Player ? "PLAYER" : "CONSOLE");
         discordWebhookService.sendAction(
                 "void",
                 targetActionId,
@@ -226,7 +246,8 @@ public final class PunishmentService {
                 "Action voided",
                 targetActionId,
                 "VOID",
-                ipPunishment
+            ipPunishment,
+            context
         );
     }
 
@@ -294,6 +315,30 @@ public final class PunishmentService {
             case WARN -> "warn";
             case KICK -> "kick";
         };
+    }
+
+    private Map<String, String> buildActionContext(PunishmentRequest request, PunishmentRecord record, String actionKey) {
+        Map<String, String> context = new HashMap<>();
+        context.put("target_uuid", safeNullable(request.target().uuid()));
+        context.put("target_ip", safeNullable(record.targetIp()));
+        context.put("template", safeNullable(request.templateName()));
+        context.put("duration", PunishmentTimeFormatter.formatRemaining(record.startTime(), record.endTime()));
+        context.put("start_time", PunishmentTimeFormatter.formatTimestampHumanUtc(record.startTime()));
+        context.put(
+            "end_time",
+            record.endTime() == null
+                ? PunishmentTimeFormatter.NEVER_LABEL
+                : PunishmentTimeFormatter.formatTimestampHumanUtc(record.endTime())
+        );
+        context.put("issued_offline", Boolean.toString(record.issuedOffline()));
+        context.put("related_action_id", record.id());
+        context.put("executor_type", request.executor() instanceof Player ? "PLAYER" : "CONSOLE");
+        context.put("action_label", actionKey.toUpperCase());
+        return context;
+    }
+
+    private static String safeNullable(String value) {
+        return (value == null || value.isBlank()) ? "N/A" : value;
     }
 
     private void withTargetOnline(String targetUuid, Consumer<Player> callback) {

@@ -5,6 +5,9 @@
 #
 # Description placeholder values:
 #   <executor> <target> <reason> <id> <type> <action> <ip_punishment>
+#   <timestamp> <target_uuid> <target_ip> <template> <duration>
+#   <start_time> <end_time> <issued_offline> <related_action_id>
+#   <executor_type> <action_label>
 #
 # Action keys emitted by Flux by default:
 #   ban, mute, kick, warn, void, unban, unmute
@@ -35,38 +38,168 @@ actions:
   #   enabled       -> possible values: true, false
   #   title         -> possible values: any non-empty string
   #   description   -> possible values: any non-empty string + optional placeholders above
+  #   content       -> possible values: empty string or mention text
+  #   color         -> possible values: #RRGGBB
+  #   show-timestamp -> possible values: true, false
+  #   footer-text   -> possible values: any string
+  #   fields        -> list of named values with inline=true/false
 
   ban:
     enabled: true
-    title: "Ban Issued"
-    description: "**<executor>** banned **<target>** (`<id>`) for: `<reason>` | IP Punishment: `<ip_punishment>`"
+    title: "Ban Issued - <id>"
+    description: "<executor> applied a ban to <target>."
+    content: ""
+    color: "#ED4245"
+    show-timestamp: true
+    footer-text: "Flux Moderation"
+    fields:
+      - name: "Reason"
+        value: "<reason>"
+        inline: false
+      - name: "Duration"
+        value: "<duration>"
+        inline: true
+      - name: "Template"
+        value: "<template>"
+        inline: true
+      - name: "IP Punishment"
+        value: "<ip_punishment>"
+        inline: true
+      - name: "Target UUID"
+        value: "<target_uuid>"
+        inline: true
+      - name: "Target IP"
+        value: "<target_ip>"
+        inline: true
+      - name: "Issued Offline"
+        value: "<issued_offline>"
+        inline: true
 
   mute:
     enabled: true
-    title: "Mute Issued"
-    description: "**<executor>** muted **<target>** (`<id>`) for: `<reason>` | IP Punishment: `<ip_punishment>`"
+    title: "Mute Issued - <id>"
+    description: "<executor> muted <target>."
+    content: ""
+    color: "#F1C40F"
+    show-timestamp: true
+    footer-text: "Flux Moderation"
+    fields:
+      - name: "Reason"
+        value: "<reason>"
+        inline: false
+      - name: "Duration"
+        value: "<duration>"
+        inline: true
+      - name: "Template"
+        value: "<template>"
+        inline: true
+      - name: "Target UUID"
+        value: "<target_uuid>"
+        inline: true
+      - name: "Target IP"
+        value: "<target_ip>"
+        inline: true
+      - name: "Start"
+        value: "<start_time>"
+        inline: true
+      - name: "End"
+        value: "<end_time>"
+        inline: true
 
   kick:
     enabled: true
-    title: "Kick Issued"
-    description: "**<executor>** kicked **<target>** (`<id>`) for: `<reason>` | IP Punishment: `<ip_punishment>`"
+    title: "Kick Issued - <id>"
+    description: "<executor> removed <target> from the server."
+    content: ""
+    color: "#E67E22"
+    show-timestamp: true
+    footer-text: "Flux Moderation"
+    fields:
+      - name: "Reason"
+        value: "<reason>"
+        inline: false
+      - name: "Template"
+        value: "<template>"
+        inline: true
+      - name: "Target UUID"
+        value: "<target_uuid>"
+        inline: true
+      - name: "Target IP"
+        value: "<target_ip>"
+        inline: true
 
   warn:
     enabled: true
-    title: "Warning Issued"
-    description: "**<executor>** warned **<target>** (`<id>`) for: `<reason>` | IP Punishment: `<ip_punishment>`"
+    title: "Warning Issued - <id>"
+    description: "<executor> issued a warning to <target>."
+    content: ""
+    color: "#3498DB"
+    show-timestamp: true
+    footer-text: "Flux Moderation"
+    fields:
+      - name: "Reason"
+        value: "<reason>"
+        inline: false
+      - name: "Template"
+        value: "<template>"
+        inline: true
+      - name: "Target UUID"
+        value: "<target_uuid>"
+        inline: true
+      - name: "Target IP"
+        value: "<target_ip>"
+        inline: true
 
   void:
     enabled: true
-    title: "Action Voided"
-    description: "**<executor>** voided action **<target>** | Reason: `<reason>` | IP Punishment: `<ip_punishment>`"
+    title: "Action Voided - <id>"
+    description: "<executor> voided moderation action <related_action_id>."
+    content: ""
+    color: "#95A5A6"
+    show-timestamp: true
+    footer-text: "Flux Moderation"
+    fields:
+      - name: "Target Action"
+        value: "<related_action_id>"
+        inline: true
+      - name: "Reason"
+        value: "<reason>"
+        inline: false
+      - name: "IP Punishment"
+        value: "<ip_punishment>"
+        inline: true
 
   unban:
     enabled: true
     title: "Ban Lifted"
-    description: "**<executor>** unbanned **<target>** | IP Punishment: `<ip_punishment>`"
+    description: "<executor> removed an active ban for <target>."
+    content: ""
+    color: "#57F287"
+    show-timestamp: true
+    footer-text: "Flux Moderation"
+    fields:
+      - name: "Target"
+        value: "<target>"
+        inline: true
+      - name: "Executor Type"
+        value: "<executor_type>"
+        inline: true
+      - name: "IP Punishment"
+        value: "<ip_punishment>"
+        inline: true
 
   unmute:
     enabled: true
     title: "Mute Lifted"
-    description: "**<executor>** unmuted **<target>** | IP Punishment: `<ip_punishment>`"
+    description: "<executor> removed an active mute for <target>."
+    content: ""
+    color: "#2ECC71"
+    show-timestamp: true
+    footer-text: "Flux Moderation"
+    fields:
+      - name: "Target"
+        value: "<target>"
+        inline: true
+      - name: "Executor Type"
+        value: "<executor_type>"
+        inline: true

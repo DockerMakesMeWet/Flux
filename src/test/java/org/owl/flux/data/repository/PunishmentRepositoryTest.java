@@ -70,36 +70,48 @@ class PunishmentRepositoryTest {
         punishmentRepository.save(new PunishmentRecord(
                 "MU0001",
                 PunishmentType.MUTE,
+                null,
                 "203.0.113.7",
+                null,
                 "00000000-0000-0000-0000-000000000000",
                 "active mute",
                 Instant.now().minusSeconds(120),
                 null,
                 true,
                 false,
+                false,
+                false,
                 Map.of()
         ));
         punishmentRepository.save(new PunishmentRecord(
                 "MU0002",
                 PunishmentType.MUTE,
+                null,
                 "203.0.113.7",
+                null,
                 "00000000-0000-0000-0000-000000000000",
                 "voided mute",
                 Instant.now().minusSeconds(60),
                 null,
                 true,
                 true,
+                false,
+                false,
                 Map.of()
         ));
         punishmentRepository.save(new PunishmentRecord(
                 "BA0001",
                 PunishmentType.BAN,
+                null,
                 "203.0.113.7",
+                null,
                 "00000000-0000-0000-0000-000000000000",
                 "active ban",
                 Instant.now(),
                 null,
                 true,
+                false,
+                false,
                 false,
                 Map.of()
         ));
@@ -126,6 +138,7 @@ class PunishmentRepositoryTest {
         PunishmentRecord punishment = new PunishmentRecord(
                 "OF0001",
                 PunishmentType.BAN,
+                null,
                 "198.51.100.77",
                 "NeverSeenUser",
                 "00000000-0000-0000-0000-000000000000",
@@ -151,24 +164,32 @@ class PunishmentRepositoryTest {
         PunishmentRecord original = new PunishmentRecord(
                 "DUPE01",
                 PunishmentType.BAN,
+                null,
                 "203.0.113.1",
+                null,
                 "00000000-0000-0000-0000-000000000000",
                 "original",
                 Instant.now(),
                 null,
                 true,
                 false,
+                false,
+                false,
                 Map.of()
         );
         PunishmentRecord duplicate = new PunishmentRecord(
                 "DUPE01",
                 PunishmentType.MUTE,
+                null,
                 "203.0.113.2",
+                null,
                 "00000000-0000-0000-0000-000000000000",
                 "duplicate",
                 Instant.now(),
                 null,
                 true,
+                false,
+                false,
                 false,
                 Map.of()
         );
@@ -225,29 +246,37 @@ class PunishmentRepositoryTest {
         punishmentRepository.save(new PunishmentRecord(
                 "AB0001",
                 PunishmentType.BAN,
+                null,
                 "203.0.113.7",
+                "TargetUser",
                 "00000000-0000-0000-0000-000000000000",
                 "active",
                 Instant.now().minusSeconds(120),
                 null,
                 true,
                 false,
+                false,
+                false,
                 Map.of()
         ));
         punishmentRepository.save(new PunishmentRecord(
                 "AB0002",
                 PunishmentType.BAN,
+                null,
                 "203.0.113.7",
+                "TargetUser",
                 "00000000-0000-0000-0000-000000000000",
                 "inactive",
                 Instant.now().minusSeconds(60),
                 null,
                 false,
                 false,
+                false,
+                false,
                 Map.of()
         ));
 
-        List<PunishmentRecord> active = punishmentRepository.activeByTarget("TargetUser");
+        List<PunishmentRecord> active = punishmentRepository.activeByTarget(null, "TargetUser");
         assertEquals(List.of("AB0001"), active.stream().map(PunishmentRecord::id).toList());
     }
 
@@ -256,25 +285,33 @@ class PunishmentRepositoryTest {
         punishmentRepository.save(new PunishmentRecord(
                 "AB0010",
                 PunishmentType.BAN,
+                null,
                 "198.51.100.10",
+                null,
                 "00000000-0000-0000-0000-000000000000",
                 "active",
                 Instant.now().minusSeconds(120),
                 null,
                 true,
                 false,
+                false,
+                false,
                 Map.of()
         ));
         punishmentRepository.save(new PunishmentRecord(
                 "AB0011",
                 PunishmentType.BAN,
+                null,
                 "198.51.100.10",
+                null,
                 "00000000-0000-0000-0000-000000000000",
                 "voided",
                 Instant.now().minusSeconds(60),
                 null,
                 true,
                 true,
+                false,
+                false,
                 Map.of()
         ));
 
@@ -287,12 +324,16 @@ class PunishmentRepositoryTest {
         punishmentRepository.save(new PunishmentRecord(
                 "MX1001",
                 PunishmentType.MUTE,
+                null,
                 "198.51.100.10",
+                null,
                 "00000000-0000-0000-0000-000000000000",
                 "active mute",
                 Instant.now().minusSeconds(120),
                 null,
                 true,
+                false,
+                false,
                 false,
                 Map.of()
         ));
@@ -312,6 +353,7 @@ class PunishmentRepositoryTest {
         punishmentRepository.save(new PunishmentRecord(
                 "JN0001",
                 PunishmentType.WARN,
+                null,
                 "198.51.100.30",
                 "TargetUser",
                 "00000000-0000-0000-0000-000000000000",
@@ -327,6 +369,7 @@ class PunishmentRepositoryTest {
         punishmentRepository.save(new PunishmentRecord(
                 "JN0002",
                 PunishmentType.MUTE,
+                null,
                 "198.51.100.30",
                 "TargetUser",
                 "00000000-0000-0000-0000-000000000000",
@@ -342,6 +385,7 @@ class PunishmentRepositoryTest {
         punishmentRepository.save(new PunishmentRecord(
                 "JN0003",
                 PunishmentType.BAN,
+                null,
                 "198.51.100.30",
                 "TargetUser",
                 "00000000-0000-0000-0000-000000000000",
@@ -357,6 +401,7 @@ class PunishmentRepositoryTest {
         punishmentRepository.save(new PunishmentRecord(
                 "JN0004",
                 PunishmentType.BAN,
+                null,
                 "198.51.100.30",
                 "TargetUser",
                 "00000000-0000-0000-0000-000000000000",
@@ -370,7 +415,7 @@ class PunishmentRepositoryTest {
                 Map.of()
         ));
 
-        List<PunishmentRecord> pending = punishmentRepository.findPendingJoinNotices("targetuser");
+        List<PunishmentRecord> pending = punishmentRepository.findPendingJoinNotices(null, "targetuser");
         assertEquals(List.of("JN0001", "JN0002"), pending.stream().map(PunishmentRecord::id).toList());
     }
 
@@ -380,6 +425,7 @@ class PunishmentRepositoryTest {
         punishmentRepository.save(new PunishmentRecord(
                 "JN0010",
                 PunishmentType.WARN,
+                null,
                 "198.51.100.31",
                 "TargetUser",
                 "00000000-0000-0000-0000-000000000000",
@@ -395,6 +441,7 @@ class PunishmentRepositoryTest {
         punishmentRepository.save(new PunishmentRecord(
                 "JN0011",
                 PunishmentType.KICK,
+                null,
                 "198.51.100.31",
                 "TargetUser",
                 "00000000-0000-0000-0000-000000000000",
@@ -408,9 +455,9 @@ class PunishmentRepositoryTest {
                 Map.of()
         ));
 
-        List<PunishmentRecord> firstPending = punishmentRepository.findPendingJoinNotices("TargetUser");
+        List<PunishmentRecord> firstPending = punishmentRepository.findPendingJoinNotices(null, "TargetUser");
         int updated = punishmentRepository.markJoinNoticesDelivered(firstPending.stream().map(PunishmentRecord::id).toList());
-        List<PunishmentRecord> secondPending = punishmentRepository.findPendingJoinNotices("TargetUser");
+        List<PunishmentRecord> secondPending = punishmentRepository.findPendingJoinNotices(null, "TargetUser");
 
         assertEquals(2, updated);
         assertTrue(secondPending.isEmpty());
@@ -422,6 +469,7 @@ class PunishmentRepositoryTest {
         punishmentRepository.save(new PunishmentRecord(
                 "ME1001",
                 PunishmentType.MUTE,
+                null,
                 "198.51.100.90",
                 "TargetUser",
                 "00000000-0000-0000-0000-000000000000",
@@ -437,6 +485,7 @@ class PunishmentRepositoryTest {
         punishmentRepository.save(new PunishmentRecord(
                 "ME1002",
                 PunishmentType.MUTE,
+                null,
                 "198.51.100.90",
                 "TargetUser",
                 "00000000-0000-0000-0000-000000000000",
@@ -452,7 +501,7 @@ class PunishmentRepositoryTest {
 
         punishmentRepository.expireEndedPunishments();
 
-        List<PunishmentRecord> pending = punishmentRepository.findPendingMuteExpiryNotices("TargetUser");
+        List<PunishmentRecord> pending = punishmentRepository.findPendingMuteExpiryNotices(null, "TargetUser");
         assertEquals(List.of("ME1001"), pending.stream().map(PunishmentRecord::id).toList());
         assertFalse(punishmentRepository.findById("ME1001").orElseThrow().active());
         assertTrue(punishmentRepository.findById("ME1002").orElseThrow().active());
@@ -464,6 +513,7 @@ class PunishmentRepositoryTest {
         punishmentRepository.save(new PunishmentRecord(
                 "ME2001",
                 PunishmentType.MUTE,
+                null,
                 "198.51.100.91",
                 "TargetUser",
                 "00000000-0000-0000-0000-000000000000",
@@ -479,6 +529,7 @@ class PunishmentRepositoryTest {
         punishmentRepository.save(new PunishmentRecord(
                 "ME2002",
                 PunishmentType.MUTE,
+                null,
                 "198.51.100.91",
                 "TargetUser",
                 "00000000-0000-0000-0000-000000000000",
@@ -494,10 +545,10 @@ class PunishmentRepositoryTest {
 
         punishmentRepository.expireEndedPunishments();
 
-        List<PunishmentRecord> firstPending = punishmentRepository.findPendingMuteExpiryNotices("targetuser");
+        List<PunishmentRecord> firstPending = punishmentRepository.findPendingMuteExpiryNotices(null, "targetuser");
         int updated = punishmentRepository.markMuteExpiryNoticesDelivered(firstPending.stream().map(PunishmentRecord::id).toList());
         int secondUpdate = punishmentRepository.markMuteExpiryNoticesDelivered(firstPending.stream().map(PunishmentRecord::id).toList());
-        List<PunishmentRecord> secondPending = punishmentRepository.findPendingMuteExpiryNotices("targetuser");
+        List<PunishmentRecord> secondPending = punishmentRepository.findPendingMuteExpiryNotices(null, "targetuser");
 
         assertEquals(List.of("ME2001", "ME2002"), firstPending.stream().map(PunishmentRecord::id).toList());
         assertEquals(2, updated);
@@ -509,12 +560,16 @@ class PunishmentRepositoryTest {
         punishmentRepository.save(new PunishmentRecord(
                 id,
                 PunishmentType.BAN,
+                null,
                 "203.0.113.7",
+                null,
                 "00000000-0000-0000-0000-000000000000",
                 "test",
                 startTime,
                 null,
                 true,
+                false,
+                false,
                 false,
                 Map.of()
         ));

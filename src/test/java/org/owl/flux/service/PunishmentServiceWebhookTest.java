@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -73,13 +74,14 @@ class PunishmentServiceWebhookTest {
         assertEquals("TargetUser", captor.getValue().targetUsername());
         assertTrue(captor.getValue().issuedOffline());
         verify(discordWebhookService).sendAction(
-                "ban",
-                "TargetUser",
-                "Console",
-                "Rule violation",
-                "ABC123",
-                "BAN",
-                true
+                eq("ban"),
+                eq("TargetUser"),
+                eq("Console"),
+                eq("Rule violation"),
+                eq("ABC123"),
+                eq("BAN"),
+                eq(true),
+                anyMap()
         );
     }
 
@@ -190,13 +192,14 @@ class PunishmentServiceWebhookTest {
         verify(punishmentRepository, times(2)).save(captor.capture());
         assertEquals(List.of("ABC123", "DEF456"), captor.getAllValues().stream().map(PunishmentRecord::id).toList());
         verify(discordWebhookService).sendAction(
-                "ban",
-                "TargetUser",
-                "Console",
-                "Rule violation",
-                "DEF456",
-                "BAN",
-                false
+                eq("ban"),
+                eq("TargetUser"),
+                eq("Console"),
+                eq("Rule violation"),
+                eq("DEF456"),
+                eq("BAN"),
+                eq(false),
+                anyMap()
         );
     }
 

@@ -60,7 +60,7 @@ class MessageServiceTest {
         String rendered = plain(service.banScreen("BA1001", "Rule breach", Instant.parse("2026-01-01T02:00:00Z")));
 
         assertTrue(rendered.contains("DuckyMC"));
-        assertTrue(rendered.contains("Expires At: 2026-01-01T02:00:00Z"));
+        assertTrue(rendered.contains("Expires At: 2026-01-01 02:00:00 UTC"));
         assertTrue(rendered.contains("Time Left: 2h"));
         assertTrue(rendered.contains("Action ID: BA1001"));
         assertTrue(rendered.contains("Sharing this ID may hurt your appeal chances."));
@@ -114,7 +114,7 @@ class MessageServiceTest {
         verify(targetPlayer).sendMessage(captor.capture());
         String rendered = plain(captor.getValue());
         assertTrue(rendered.contains("You were Mute by ModUser."));
-        assertTrue(rendered.contains("Expires At: 2026-01-01T01:30:00Z"));
+        assertTrue(rendered.contains("Expires At: 2026-01-01 01:30:00 UTC"));
         assertTrue(rendered.contains("Time Left: 1h 30m"));
         assertTrue(rendered.contains("Sharing this ID may hurt your appeal chances."));
     }
@@ -217,7 +217,7 @@ class MessageServiceTest {
 
         assertTrue(firstRendered.startsWith("DuckyMC » "));
         assertTrue(firstRendered.contains("Time left: 2d 4h 10m 30s"));
-        assertTrue(firstRendered.contains("Expires at: 2026-01-03T04:10:30Z"));
+        assertTrue(firstRendered.contains("Expires at: 2026-01-03 04:10:30 UTC"));
         assertTrue(secondRendered.contains("Time left: 1d 4h 10m 30s"));
     }
 

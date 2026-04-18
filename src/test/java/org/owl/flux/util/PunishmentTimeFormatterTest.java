@@ -29,8 +29,8 @@ class PunishmentTimeFormatterTest {
     void formatsAbsoluteExpiryTimestamp() {
         Instant expiry = Instant.parse("2026-01-03T04:10:00Z");
 
-        assertEquals("2026-01-03T04:10:00Z", PunishmentTimeFormatter.formatExpiry(expiry));
-        assertEquals("2026-01-03T04:10:00Z", PunishmentTimeFormatter.formatTimestamp(expiry));
+        assertEquals("2026-01-03 04:10:00 UTC", PunishmentTimeFormatter.formatExpiry(expiry));
+        assertEquals("2026-01-03 04:10:00 UTC", PunishmentTimeFormatter.formatTimestamp(expiry));
     }
 
     @Test
