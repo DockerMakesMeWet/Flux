@@ -130,9 +130,8 @@ public final class DiscordWebhookService {
         String normalizedFooter = normalizeFooter(footerText, timestamp);
         embed.put("footer", Map.of("text", normalizedFooter));
 
-        if (actionConfig.showTimestamp) {
-            embed.put("timestamp", eventTime.toString());
-        }
+        // Keep all visible timestamps in strict formatter output via placeholders/footer.
+        // Avoid emitting ISO timestamp fields here to keep output format consistent.
 
         Map<String, Object> payload = new HashMap<>();
         payload.put("username", config.webhook.username);

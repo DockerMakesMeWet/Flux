@@ -17,6 +17,7 @@ import org.owl.flux.core.ServiceRegistry;
 import org.owl.flux.data.DatabaseManager;
 import org.owl.flux.data.SchemaManager;
 import org.owl.flux.data.repository.PlayerRepository;
+import org.owl.flux.data.repository.ModerationActionRepository;
 import org.owl.flux.data.repository.PunishmentRepository;
 import org.owl.flux.integration.DiscordWebhookService;
 import org.owl.flux.listener.ModerationListener;
@@ -128,6 +129,7 @@ public final class FluxBootstrap {
 
         PlayerRepository playerRepository = new PlayerRepository(dataSource);
         PunishmentRepository punishmentRepository = new PunishmentRepository(dataSource);
+        ModerationActionRepository moderationActionRepository = new ModerationActionRepository(dataSource);
 
         Executor executor = Runnable::run;
         MastersService mastersService = new MastersService(logger, executor);
@@ -141,6 +143,7 @@ public final class FluxBootstrap {
         PunishmentService punishmentService = new PunishmentService(
                 server,
                 punishmentRepository,
+                moderationActionRepository,
                 actionIdService,
                 messageService,
                 discordWebhookService

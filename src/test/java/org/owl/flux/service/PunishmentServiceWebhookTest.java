@@ -30,6 +30,7 @@ import org.mockito.ArgumentCaptor;
 import org.owl.flux.data.model.PunishmentRecord;
 import org.owl.flux.data.model.PunishmentType;
 import org.owl.flux.data.repository.DuplicatePunishmentIdException;
+import org.owl.flux.data.repository.ModerationActionRepository;
 import org.owl.flux.data.repository.PunishmentRepository;
 import org.owl.flux.integration.DiscordWebhookService;
 import org.owl.flux.service.model.PunishmentRequest;
@@ -52,6 +53,7 @@ class PunishmentServiceWebhookTest {
         PunishmentService service = new PunishmentService(
                 server,
                 punishmentRepository,
+                mock(ModerationActionRepository.class),
                 actionIdService,
                 messageService,
                 discordWebhookService
@@ -103,6 +105,7 @@ class PunishmentServiceWebhookTest {
         PunishmentService service = new PunishmentService(
                 server,
                 punishmentRepository,
+                mock(ModerationActionRepository.class),
                 actionIdService,
                 messageService,
                 discordWebhookService
@@ -132,6 +135,7 @@ class PunishmentServiceWebhookTest {
         PunishmentService service = new PunishmentService(
                 mock(ProxyServer.class),
                 mock(PunishmentRepository.class),
+                mock(ModerationActionRepository.class),
                 mock(ActionIdService.class),
                 mock(MessageService.class),
                 mock(DiscordWebhookService.class)
@@ -172,6 +176,7 @@ class PunishmentServiceWebhookTest {
         PunishmentService service = new PunishmentService(
                 server,
                 punishmentRepository,
+                mock(ModerationActionRepository.class),
                 actionIdService,
                 messageService,
                 discordWebhookService
@@ -226,6 +231,7 @@ class PunishmentServiceWebhookTest {
         PunishmentService service = new PunishmentService(
                 server,
                 punishmentRepository,
+                mock(ModerationActionRepository.class),
                 actionIdService,
                 mock(MessageService.class),
                 mock(DiscordWebhookService.class)
@@ -255,6 +261,7 @@ class PunishmentServiceWebhookTest {
         PunishmentService service = new PunishmentService(
                 server,
                 punishmentRepository,
+                mock(ModerationActionRepository.class),
                 actionIdService,
                 mock(MessageService.class),
                 mock(DiscordWebhookService.class)
@@ -286,6 +293,7 @@ class PunishmentServiceWebhookTest {
         PunishmentService service = new PunishmentService(
                 mock(ProxyServer.class),
                 punishmentRepository,
+                mock(ModerationActionRepository.class),
                 mock(ActionIdService.class),
                 messageService,
                 mock(DiscordWebhookService.class)
@@ -344,6 +352,7 @@ class PunishmentServiceWebhookTest {
         PunishmentService service = new PunishmentService(
                 mock(ProxyServer.class),
                 punishmentRepository,
+                mock(ModerationActionRepository.class),
                 mock(ActionIdService.class),
                 messageService,
                 mock(DiscordWebhookService.class)
@@ -383,6 +392,7 @@ class PunishmentServiceWebhookTest {
         PunishmentService service = new PunishmentService(
                 mock(ProxyServer.class),
                 punishmentRepository,
+                mock(ModerationActionRepository.class),
                 mock(ActionIdService.class),
                 messageService,
                 mock(DiscordWebhookService.class)
@@ -427,6 +437,7 @@ class PunishmentServiceWebhookTest {
         PunishmentService service = new PunishmentService(
                 server,
                 punishmentRepository,
+                mock(ModerationActionRepository.class),
                 mock(ActionIdService.class),
                 messageService,
                 mock(DiscordWebhookService.class)
@@ -471,6 +482,7 @@ class PunishmentServiceWebhookTest {
         PunishmentService service = new PunishmentService(
                 server,
                 punishmentRepository,
+                mock(ModerationActionRepository.class),
                 mock(ActionIdService.class),
                 messageService,
                 mock(DiscordWebhookService.class)
@@ -518,6 +530,7 @@ class PunishmentServiceWebhookTest {
         PunishmentService service = new PunishmentService(
                 server,
                 mock(PunishmentRepository.class),
+                mock(ModerationActionRepository.class),
                 mock(ActionIdService.class),
                 messageService,
                 mock(DiscordWebhookService.class)
@@ -554,6 +567,7 @@ class PunishmentServiceWebhookTest {
         PunishmentService service = new PunishmentService(
                 server,
                 mock(PunishmentRepository.class),
+                mock(ModerationActionRepository.class),
                 mock(ActionIdService.class),
                 messageService,
                 mock(DiscordWebhookService.class)

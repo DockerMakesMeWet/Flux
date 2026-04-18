@@ -74,7 +74,7 @@ class DiscordWebhookServiceTest {
         Map<String, Object> footer = (Map<String, Object>) embed.get("footer");
         String footerText = (String) footer.get("text");
         assertTrue(footerText.startsWith("Flux Moderation • "));
-        assertTrue(embed.containsKey("timestamp"));
+        assertFalse(embed.containsKey("timestamp"));
 
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> fields = (List<Map<String, Object>>) embed.get("fields");

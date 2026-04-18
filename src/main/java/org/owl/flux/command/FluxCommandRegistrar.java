@@ -18,6 +18,7 @@ import java.util.Optional;
 import org.owl.flux.config.model.TemplatesConfig;
 import org.owl.flux.data.model.AccountVisit;
 import org.owl.flux.data.model.IpVisit;
+import org.owl.flux.data.model.ModerationActionType;
 import org.owl.flux.data.model.PunishmentRecord;
 import org.owl.flux.data.model.PunishmentType;
 import org.owl.flux.data.repository.PlayerRepository;
@@ -324,19 +325,26 @@ public final class FluxCommandRegistrar {
 
     private void runUnban(SimpleCommand.Invocation invocation) {
         String[] args = invocation.arguments();
-        if (args.length != 1) {
+        if (args.length < 2) {
             messageService.sendUsage(invocation.source(), messageService.usageUnban());
             return;
         }
 
         String input = args[0];
+        String reason = normalizeToken(String.join(" ", Arrays.copyOfRange(args, 1, args.length)));
+        if (reason.isBlank()) {
+            messageService.sendUsage(invocation.source(), messageService.usageUnban());
+            return;
+        }
         boolean changed = false;
         String targetDisplay = input;
         boolean ipPunishment = false;
+        String relatedPunishmentId = null;
         if (NetworkUtil.isIpLiteral(input)) {
             Optional<PunishmentRecord> activeBan = punishmentService.activeBan(null, null, input);
             changed = punishmentService.unbanByIp(input);
             ipPunishment = activeBan.map(punishmentService::isIpPunishment).orElse(false);
+            relatedPunishmentId = activeBan.map(PunishmentRecord::id).orElse(null);
         } else {
             boolean resolvedById = false;
             if (looksLikePunishmentIdToken(input)) {
@@ -347,6 +355,7 @@ public final class FluxCommandRegistrar {
                     changed = punishmentService.unbanById(id);
                     targetDisplay = displayTarget(record, id);
                     ipPunishment = punishmentService.isIpPunishment(record);
+                    relatedPunishmentId = id;
                     resolvedById = true;
                 }
             }
@@ -363,6 +372,7 @@ public final class FluxCommandRegistrar {
                 changed = punishmentService.unbanByTarget(target.uuid(), target.username());
                 targetDisplay = target.username();
                 ipPunishment = activeBan.map(punishmentService::isIpPunishment).orElse(false);
+                relatedPunishmentId = activeBan.map(PunishmentRecord::id).orElse(null);
             }
         }
 
@@ -370,21 +380,34 @@ public final class FluxCommandRegistrar {
             messageService.sendActionNotFound(invocation.source());
             return;
         }
-        punishmentService.sendUnbanWebhook(targetDisplay, invocation.source(), ipPunishment);
+        punishmentService.auditReversalAction(
+                ModerationActionType.UNBAN,
+                targetDisplay,
+                relatedPunishmentId,
+                invocation.source(),
+                reason
+        );
+        punishmentService.sendUnbanWebhook(targetDisplay, invocation.source(), ipPunishment, reason);
         messageService.sendActionUpdated(invocation.source(), targetDisplay);
     }
 
     private void runUnmute(SimpleCommand.Invocation invocation) {
         String[] args = invocation.arguments();
-        if (args.length != 1) {
+        if (args.length < 2) {
             messageService.sendUsage(invocation.source(), messageService.usageUnmute());
             return;
         }
 
         String input = args[0];
+        String reason = normalizeToken(String.join(" ", Arrays.copyOfRange(args, 1, args.length)));
+        if (reason.isBlank()) {
+            messageService.sendUsage(invocation.source(), messageService.usageUnmute());
+            return;
+        }
         boolean changed = false;
         String targetDisplay = input;
         Optional<PunishmentRecord> unmutedRecord = Optional.empty();
+        String relatedPunishmentId = null;
 
         boolean resolvedById = false;
         if (looksLikePunishmentIdToken(input)) {
@@ -395,6 +418,7 @@ public final class FluxCommandRegistrar {
                 changed = punishmentService.unmuteById(id);
                 targetDisplay = displayTarget(record, id);
                 unmutedRecord = Optional.of(record);
+                relatedPunishmentId = id;
                 resolvedById = true;
             } else {
                 changed = false;
@@ -414,25 +438,38 @@ public final class FluxCommandRegistrar {
             unmutedRecord = activeMute == null ? Optional.empty() : activeMute;
             changed = punishmentService.unmuteByTarget(target.uuid(), target.username());
             targetDisplay = target.username();
+            relatedPunishmentId = activeMute.map(PunishmentRecord::id).orElse(null);
         }
 
         if (!changed) {
             messageService.sendActionNotFound(invocation.source());
             return;
         }
-        punishmentService.sendUnmuteWebhook(targetDisplay, invocation.source());
+        punishmentService.auditReversalAction(
+                ModerationActionType.UNMUTE,
+                targetDisplay,
+                relatedPunishmentId,
+                invocation.source(),
+                reason
+        );
+        punishmentService.sendUnmuteWebhook(targetDisplay, invocation.source(), reason);
         unmutedRecord.ifPresent(punishmentService::notifyPlayerUnmuted);
         messageService.sendActionUpdated(invocation.source(), targetDisplay);
     }
 
     private void runVoid(SimpleCommand.Invocation invocation) {
         String[] args = invocation.arguments();
-        if (args.length != 1) {
+        if (args.length < 2) {
             messageService.sendUsage(invocation.source(), messageService.usageVoid());
             return;
         }
 
         String targetId = args[0].toUpperCase(Locale.ROOT);
+        String reason = normalizeToken(String.join(" ", Arrays.copyOfRange(args, 1, args.length)));
+        if (reason.isBlank()) {
+            messageService.sendUsage(invocation.source(), messageService.usageVoid());
+            return;
+        }
         Optional<PunishmentRecord> record = punishmentService.findById(targetId);
         if (record.isEmpty()) {
             messageService.sendActionNotFound(invocation.source());
@@ -444,14 +481,24 @@ public final class FluxCommandRegistrar {
         }
 
         String executorName = invocation.source() instanceof Player player ? player.getUsername() : "Console";
-        punishmentService.sendVoidWebhook(targetId, invocation.source(), punishmentService.isIpPunishment(record.get()));
+        punishmentService.auditReversalAction(
+            ModerationActionType.VOID,
+            targetId,
+            targetId,
+            invocation.source(),
+            reason
+        );
+        punishmentService.sendVoidWebhook(targetId, invocation.source(), punishmentService.isIpPunishment(record.get()), reason);
         punishmentService.notifyPlayerWarnRemoved(record.get());
         messageService.sendVoidUpdated(invocation.source(), targetId);
         messageService.broadcastVoid(targetId, targetId, executorName);
     }
 
     private List<String> suggestVoid(SimpleCommand.Invocation invocation) {
-        if (invocation.arguments().length > 1) {
+        if (invocation.arguments().length > 2) {
+            return List.of();
+        }
+        if (invocation.arguments().length == 2) {
             return List.of();
         }
         return punishmentRepository.findRecentIdsByPrefix(currentToken(invocation), DEFAULT_COMPLETION_LIMIT);
@@ -693,7 +740,11 @@ public final class FluxCommandRegistrar {
                 return;
             }
             for (AccountVisit account : accounts.subList(window.fromIndex(), window.toIndex())) {
-                messageService.sendIpHistoryAccountEntry(invocation.source(), account.account(), account.lastSeen().toString());
+                messageService.sendIpHistoryAccountEntry(
+                        invocation.source(),
+                        account.account(),
+                        PunishmentTimeFormatter.formatTimestamp(account.lastSeen())
+                );
             }
             messageService.sendPaginationFooter(
                     invocation.source(),
@@ -724,7 +775,11 @@ public final class FluxCommandRegistrar {
             return;
         }
         for (IpVisit visit : visits.subList(window.fromIndex(), window.toIndex())) {
-            messageService.sendIpHistoryEntry(invocation.source(), visit.ip(), visit.lastSeen().toString());
+            messageService.sendIpHistoryEntry(
+                    invocation.source(),
+                    visit.ip(),
+                    PunishmentTimeFormatter.formatTimestamp(visit.lastSeen())
+            );
         }
         messageService.sendPaginationFooter(
                 invocation.source(),
@@ -798,6 +853,12 @@ public final class FluxCommandRegistrar {
     }
 
     private List<String> suggestUnban(SimpleCommand.Invocation invocation) {
+        if (invocation.arguments().length > 2) {
+            return List.of();
+        }
+        if (invocation.arguments().length == 2) {
+            return List.of();
+        }
         return argumentPositionCompletionFramework(invocation, mergeCompletionSources(
                 usernameOrIpTargetCompletionSource(0),
                 punishmentIdCompletionSource(PunishmentType.BAN, 0)
@@ -805,6 +866,12 @@ public final class FluxCommandRegistrar {
     }
 
     private List<String> suggestUnmute(SimpleCommand.Invocation invocation) {
+        if (invocation.arguments().length > 2) {
+            return List.of();
+        }
+        if (invocation.arguments().length == 2) {
+            return List.of();
+        }
         return argumentPositionCompletionFramework(invocation, mergeCompletionSources(
                 onlineUsernameCompletionSource(0),
                 punishmentIdCompletionSource(PunishmentType.MUTE, 0)
@@ -813,17 +880,17 @@ public final class FluxCommandRegistrar {
 
     private List<String> suggestHistory(SimpleCommand.Invocation invocation) {
         return argumentPositionCompletionFramework(
-                invocation,
-                onlineUsernameCompletionSource(0),
-                pageNumberCompletionSource(1)
+            invocation,
+            onlineUsernameCompletionSource(0),
+            pageNumberCompletionSource(1)
         );
     }
 
     private List<String> suggestCheckPlayer(SimpleCommand.Invocation invocation) {
         return argumentPositionCompletionFramework(
-                invocation,
-                onlineUsernameCompletionSource(0),
-                pageNumberCompletionSource(1)
+            invocation,
+            onlineUsernameCompletionSource(0),
+            pageNumberCompletionSource(1)
         );
     }
 

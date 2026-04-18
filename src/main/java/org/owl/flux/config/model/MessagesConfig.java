@@ -87,13 +87,13 @@ public final class MessagesConfig {
         public String usageIpBan = "/ipban <user/ip> [duration] <reason/#template>";
 
         @Setting("usage-unban")
-        public String usageUnban = "/unban <user/ip/id>";
+        public String usageUnban = "/unban <user/ip/id> <reason>";
 
         @Setting("usage-unmute")
-        public String usageUnmute = "/unmute <user/id>";
+        public String usageUnmute = "/unmute <user/id> <reason>";
 
         @Setting("usage-void")
-        public String usageVoid = "/void <id>";
+        public String usageVoid = "/void <id> <reason>";
 
         @Setting("usage-history")
         public String usageHistory = "/history <user> [page]";

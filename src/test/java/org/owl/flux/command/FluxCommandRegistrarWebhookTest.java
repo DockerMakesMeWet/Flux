@@ -17,6 +17,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.owl.flux.data.model.PunishmentRecord;
 import org.owl.flux.data.model.PunishmentType;
+import org.owl.flux.data.model.ModerationActionType;
 import org.owl.flux.data.repository.PlayerRepository;
 import org.owl.flux.data.repository.PunishmentRepository;
 import org.owl.flux.service.MastersService;
@@ -34,7 +35,7 @@ class FluxCommandRegistrarWebhookTest {
         CommandSource source = mock(CommandSource.class);
         SimpleCommand.Invocation invocation = mock(SimpleCommand.Invocation.class);
         when(invocation.source()).thenReturn(source);
-        when(invocation.arguments()).thenReturn(new String[]{"TargetUser"});
+        when(invocation.arguments()).thenReturn(new String[]{"TargetUser", "appeal accepted"});
 
         TargetResolver targetResolver = mock(TargetResolver.class);
         TargetProfile target = new TargetProfile("uuid-1", "TargetUser", "203.0.113.10", null);
@@ -49,7 +50,8 @@ class FluxCommandRegistrarWebhookTest {
         FluxCommandRegistrar registrar = registrar(targetResolver, punishmentService);
         invoke(registrar, "runUnban", invocation);
 
-        verify(punishmentService).sendUnbanWebhook("TargetUser", source, true);
+        verify(punishmentService).sendUnbanWebhook("TargetUser", source, true, "appeal accepted");
+        verify(punishmentService).auditReversalAction(ModerationActionType.UNBAN, "TargetUser", "BAN001", source, "appeal accepted");
     }
 
     @Test
@@ -57,7 +59,7 @@ class FluxCommandRegistrarWebhookTest {
         CommandSource source = mock(CommandSource.class);
         SimpleCommand.Invocation invocation = mock(SimpleCommand.Invocation.class);
         when(invocation.source()).thenReturn(source);
-        when(invocation.arguments()).thenReturn(new String[]{"NeverSeen"});
+        when(invocation.arguments()).thenReturn(new String[]{"NeverSeen", "record review"});
 
         TargetResolver targetResolver = mock(TargetResolver.class);
         TargetProfile target = new TargetProfile(null, "NeverSeen", null, null);
@@ -73,7 +75,8 @@ class FluxCommandRegistrarWebhookTest {
         invoke(registrar, "runUnban", invocation);
 
         verify(punishmentService).unbanByTarget(null, "NeverSeen");
-        verify(punishmentService).sendUnbanWebhook("NeverSeen", source, false);
+        verify(punishmentService).sendUnbanWebhook("NeverSeen", source, false, "record review");
+        verify(punishmentService).auditReversalAction(ModerationActionType.UNBAN, "NeverSeen", "BAN010", source, "record review");
     }
 
     @Test
@@ -81,7 +84,7 @@ class FluxCommandRegistrarWebhookTest {
         CommandSource source = mock(CommandSource.class);
         SimpleCommand.Invocation invocation = mock(SimpleCommand.Invocation.class);
         when(invocation.source()).thenReturn(source);
-        when(invocation.arguments()).thenReturn(new String[]{"ab1234"});
+        when(invocation.arguments()).thenReturn(new String[]{"ab1234", "manual correction"});
 
         TargetResolver targetResolver = mock(TargetResolver.class);
         when(targetResolver.resolvePlayer("ab1234")).thenReturn(Optional.empty());
@@ -96,7 +99,8 @@ class FluxCommandRegistrarWebhookTest {
         invoke(registrar, "runUnban", invocation);
 
         verify(punishmentService).unbanById("AB1234");
-        verify(punishmentService).sendUnbanWebhook("TargetUser", source, false);
+        verify(punishmentService).sendUnbanWebhook("TargetUser", source, false, "manual correction");
+        verify(punishmentService).auditReversalAction(ModerationActionType.UNBAN, "TargetUser", "AB1234", source, "manual correction");
     }
 
     @Test
@@ -104,7 +108,7 @@ class FluxCommandRegistrarWebhookTest {
         CommandSource source = mock(CommandSource.class);
         SimpleCommand.Invocation invocation = mock(SimpleCommand.Invocation.class);
         when(invocation.source()).thenReturn(source);
-        when(invocation.arguments()).thenReturn(new String[]{"BA2001"});
+        when(invocation.arguments()).thenReturn(new String[]{"BA2001", "false positive"});
 
         TargetResolver targetResolver = mock(TargetResolver.class);
         when(targetResolver.resolvePlayer("BA2001")).thenReturn(Optional.empty());
@@ -133,7 +137,8 @@ class FluxCommandRegistrarWebhookTest {
         FluxCommandRegistrar registrar = registrar(targetResolver, punishmentService);
         invoke(registrar, "runUnban", invocation);
 
-        verify(punishmentService).sendUnbanWebhook("198.51.100.40", source, false);
+        verify(punishmentService).sendUnbanWebhook("198.51.100.40", source, false, "false positive");
+        verify(punishmentService).auditReversalAction(ModerationActionType.UNBAN, "198.51.100.40", "BA2001", source, "false positive");
     }
 
     @Test
@@ -141,7 +146,7 @@ class FluxCommandRegistrarWebhookTest {
         CommandSource source = mock(CommandSource.class);
         SimpleCommand.Invocation invocation = mock(SimpleCommand.Invocation.class);
         when(invocation.source()).thenReturn(source);
-        when(invocation.arguments()).thenReturn(new String[]{"TargetUser"});
+        when(invocation.arguments()).thenReturn(new String[]{"TargetUser", "appeal accepted"});
 
         TargetResolver targetResolver = mock(TargetResolver.class);
         TargetProfile target = new TargetProfile("uuid-1", "TargetUser", "203.0.113.10", null);
@@ -153,7 +158,8 @@ class FluxCommandRegistrarWebhookTest {
         FluxCommandRegistrar registrar = registrar(targetResolver, punishmentService);
         invoke(registrar, "runUnmute", invocation);
 
-        verify(punishmentService).sendUnmuteWebhook("TargetUser", source);
+        verify(punishmentService).sendUnmuteWebhook("TargetUser", source, "appeal accepted");
+        verify(punishmentService).auditReversalAction(ModerationActionType.UNMUTE, "TargetUser", null, source, "appeal accepted");
     }
 
     @Test
@@ -161,7 +167,7 @@ class FluxCommandRegistrarWebhookTest {
         CommandSource source = mock(CommandSource.class);
         SimpleCommand.Invocation invocation = mock(SimpleCommand.Invocation.class);
         when(invocation.source()).thenReturn(source);
-        when(invocation.arguments()).thenReturn(new String[]{"NeverSeen"});
+        when(invocation.arguments()).thenReturn(new String[]{"NeverSeen", "manual lift"});
 
         TargetResolver targetResolver = mock(TargetResolver.class);
         TargetProfile target = new TargetProfile(null, "NeverSeen", null, null);
@@ -176,7 +182,8 @@ class FluxCommandRegistrarWebhookTest {
         invoke(registrar, "runUnmute", invocation);
 
         verify(punishmentService).unmuteByTarget(null, "NeverSeen");
-        verify(punishmentService).sendUnmuteWebhook("NeverSeen", source);
+        verify(punishmentService).sendUnmuteWebhook("NeverSeen", source, "manual lift");
+        verify(punishmentService).auditReversalAction(ModerationActionType.UNMUTE, "NeverSeen", "MU9011", source, "manual lift");
         verify(punishmentService).notifyPlayerUnmuted(activeMute);
     }
 
@@ -185,7 +192,7 @@ class FluxCommandRegistrarWebhookTest {
         CommandSource source = mock(CommandSource.class);
         SimpleCommand.Invocation invocation = mock(SimpleCommand.Invocation.class);
         when(invocation.source()).thenReturn(source);
-        when(invocation.arguments()).thenReturn(new String[]{"MU1234"});
+        when(invocation.arguments()).thenReturn(new String[]{"MU1234", "appeal accepted"});
 
         TargetResolver targetResolver = mock(TargetResolver.class);
         when(targetResolver.resolvePlayer("MU1234")).thenReturn(Optional.empty());
@@ -198,7 +205,8 @@ class FluxCommandRegistrarWebhookTest {
         FluxCommandRegistrar registrar = registrar(targetResolver, punishmentService);
         invoke(registrar, "runUnmute", invocation);
 
-        verify(punishmentService).sendUnmuteWebhook("TargetUser", source);
+        verify(punishmentService).sendUnmuteWebhook("TargetUser", source, "appeal accepted");
+        verify(punishmentService).auditReversalAction(ModerationActionType.UNMUTE, "TargetUser", "MU1234", source, "appeal accepted");
         verify(punishmentService).notifyPlayerUnmuted(record);
     }
 
@@ -207,7 +215,7 @@ class FluxCommandRegistrarWebhookTest {
         CommandSource source = mock(CommandSource.class);
         SimpleCommand.Invocation invocation = mock(SimpleCommand.Invocation.class);
         when(invocation.source()).thenReturn(source);
-        when(invocation.arguments()).thenReturn(new String[]{"MU2201"});
+        when(invocation.arguments()).thenReturn(new String[]{"MU2201", "expired already"});
 
         TargetResolver targetResolver = mock(TargetResolver.class);
         when(targetResolver.resolvePlayer("MU2201")).thenReturn(Optional.empty());
@@ -235,7 +243,8 @@ class FluxCommandRegistrarWebhookTest {
         FluxCommandRegistrar registrar = registrar(targetResolver, punishmentService);
         invoke(registrar, "runUnmute", invocation);
 
-        verify(punishmentService).sendUnmuteWebhook("00000000-0000-0000-0000-000000000220", source);
+        verify(punishmentService).sendUnmuteWebhook("00000000-0000-0000-0000-000000000220", source, "expired already");
+        verify(punishmentService).auditReversalAction(ModerationActionType.UNMUTE, "00000000-0000-0000-0000-000000000220", "MU2201", source, "expired already");
         verify(punishmentService).notifyPlayerUnmuted(record);
     }
 
@@ -244,7 +253,7 @@ class FluxCommandRegistrarWebhookTest {
         CommandSource source = mock(CommandSource.class);
         SimpleCommand.Invocation invocation = mock(SimpleCommand.Invocation.class);
         when(invocation.source()).thenReturn(source);
-        when(invocation.arguments()).thenReturn(new String[]{"abc123"});
+        when(invocation.arguments()).thenReturn(new String[]{"abc123", "invalid action"});
 
         PunishmentService punishmentService = mock(PunishmentService.class);
         PunishmentRecord record = punishment("ABC123", Map.of("ip_punishment", "true"));
@@ -255,7 +264,8 @@ class FluxCommandRegistrarWebhookTest {
         FluxCommandRegistrar registrar = registrar(mock(TargetResolver.class), punishmentService);
         invoke(registrar, "runVoid", invocation);
 
-        verify(punishmentService).sendVoidWebhook("ABC123", source, true);
+        verify(punishmentService).sendVoidWebhook("ABC123", source, true, "invalid action");
+        verify(punishmentService).auditReversalAction(ModerationActionType.VOID, "ABC123", "ABC123", source, "invalid action");
     }
 
     @Test
@@ -263,7 +273,7 @@ class FluxCommandRegistrarWebhookTest {
         CommandSource source = mock(CommandSource.class);
         SimpleCommand.Invocation invocation = mock(SimpleCommand.Invocation.class);
         when(invocation.source()).thenReturn(source);
-        when(invocation.arguments()).thenReturn(new String[]{"wa1234"});
+        when(invocation.arguments()).thenReturn(new String[]{"wa1234", "legacy warning"});
 
         PunishmentService punishmentService = mock(PunishmentService.class);
         PunishmentRecord record = punishment("WA1234", PunishmentType.WARN, "TargetUser", Map.of());

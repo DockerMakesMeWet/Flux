@@ -40,8 +40,8 @@ class FluxCommandRegistrarIpHistoryTest {
         invoke(registrar, "runIpHistory", invocation(source, "203.0.113.10"));
 
         verify(messageService).sendIpHistoryHeader(source, "203.0.113.10");
-        verify(messageService).sendIpHistoryAccountEntry(source, "Alpha", "2026-01-03T00:00:00Z");
-        verify(messageService).sendIpHistoryAccountEntry(source, "Bravo", "2026-01-02T00:00:00Z");
+        verify(messageService).sendIpHistoryAccountEntry(source, "Alpha", "2026-01-03 00:00:00 UTC");
+        verify(messageService).sendIpHistoryAccountEntry(source, "Bravo", "2026-01-02 00:00:00 UTC");
         verify(messageService).sendPaginationFooter(source, 1, 1, "/iphistory 203.0.113.10");
     }
 

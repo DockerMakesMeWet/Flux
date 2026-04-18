@@ -10,9 +10,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
+import org.owl.flux.data.model.ModerationActionType;
 import org.owl.flux.data.model.PunishmentRecord;
 import org.owl.flux.data.model.PunishmentType;
 import org.owl.flux.data.repository.DuplicatePunishmentIdException;
+import org.owl.flux.data.repository.ModerationActionRepository;
 import org.owl.flux.data.repository.PunishmentRepository;
 import org.owl.flux.integration.DiscordWebhookService;
 import org.owl.flux.service.model.PunishmentRequest;
@@ -27,6 +29,7 @@ public final class PunishmentService {
 
     private final ProxyServer server;
     private final PunishmentRepository punishmentRepository;
+    private final ModerationActionRepository moderationActionRepository;
     private final ActionIdService actionIdService;
     private final MessageService messageService;
     private final DiscordWebhookService discordWebhookService;
@@ -34,12 +37,14 @@ public final class PunishmentService {
     public PunishmentService(
             ProxyServer server,
             PunishmentRepository punishmentRepository,
+            ModerationActionRepository moderationActionRepository,
             ActionIdService actionIdService,
             MessageService messageService,
             DiscordWebhookService discordWebhookService
     ) {
         this.server = server;
         this.punishmentRepository = punishmentRepository;
+        this.moderationActionRepository = moderationActionRepository;
         this.actionIdService = actionIdService;
         this.messageService = messageService;
         this.discordWebhookService = discordWebhookService;
@@ -197,7 +202,7 @@ public final class PunishmentService {
         return Boolean.parseBoolean(record.metadata().getOrDefault(IP_PUNISHMENT_METADATA_KEY, "false"));
     }
 
-    public void sendUnbanWebhook(String target, CommandSource executor, boolean ipPunishment) {
+    public void sendUnbanWebhook(String target, CommandSource executor, boolean ipPunishment, String reason) {
         Map<String, String> context = new HashMap<>();
         context.put("related_action_id", "N/A");
         context.put("duration", "N/A");
@@ -207,15 +212,15 @@ public final class PunishmentService {
                 "unban",
                 target,
                 executorName(executor),
-                "Ban lifted",
+                reason,
                 "N/A",
                 "UNBAN",
-            ipPunishment,
-            context
+                ipPunishment,
+                context
         );
     }
 
-    public void sendUnmuteWebhook(String target, CommandSource executor) {
+    public void sendUnmuteWebhook(String target, CommandSource executor, String reason) {
         Map<String, String> context = new HashMap<>();
         context.put("related_action_id", "N/A");
         context.put("duration", "N/A");
@@ -225,15 +230,15 @@ public final class PunishmentService {
                 "unmute",
                 target,
                 executorName(executor),
-                "Mute lifted",
+                reason,
                 "N/A",
                 "UNMUTE",
-            false,
-            context
+                false,
+                context
         );
     }
 
-    public void sendVoidWebhook(String targetActionId, CommandSource executor, boolean ipPunishment) {
+    public void sendVoidWebhook(String targetActionId, CommandSource executor, boolean ipPunishment, String reason) {
         Map<String, String> context = new HashMap<>();
         context.put("related_action_id", targetActionId);
         context.put("duration", "N/A");
@@ -243,11 +248,28 @@ public final class PunishmentService {
                 "void",
                 targetActionId,
                 executorName(executor),
-                "Action voided",
+                reason,
                 targetActionId,
                 "VOID",
-            ipPunishment,
-            context
+                ipPunishment,
+                context
+        );
+    }
+
+    public void auditReversalAction(
+            ModerationActionType actionType,
+            String targetReference,
+            String punishmentId,
+            CommandSource executor,
+            String reason
+    ) {
+        moderationActionRepository.save(
+                actionType,
+                safeNullable(targetReference),
+                safeNullableOrNull(punishmentId),
+                executorUuid(executor),
+                safeNullable(reason),
+                Instant.now()
         );
     }
 
@@ -339,6 +361,13 @@ public final class PunishmentService {
 
     private static String safeNullable(String value) {
         return (value == null || value.isBlank()) ? "N/A" : value;
+    }
+
+    private static String safeNullableOrNull(String value) {
+        if (value == null || value.isBlank() || "N/A".equalsIgnoreCase(value)) {
+            return null;
+        }
+        return value;
     }
 
     private void withTargetOnline(String targetUuid, Consumer<Player> callback) {
