@@ -2,6 +2,7 @@ package org.owl.flux.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -446,6 +447,181 @@ class PunishmentServiceWebhookTest {
         );
 
         assertFalse(service.isIpPunishment(record));
+    }
+
+    @Test
+    void sendUnbanWebhookUsesRelatedRecordContextAndIpFlag() {
+        DiscordWebhookService discordWebhookService = mock(DiscordWebhookService.class);
+        PunishmentService service = new PunishmentService(
+                mock(ProxyServer.class),
+                mock(PunishmentRepository.class),
+                mock(ModerationActionRepository.class),
+                mock(ActionIdService.class),
+                mock(MessageService.class),
+                discordWebhookService
+        );
+
+        Instant start = Instant.parse("2026-04-18T09:00:00Z");
+        Instant end = Instant.parse("2026-04-19T09:00:00Z");
+        PunishmentRecord record = new PunishmentRecord(
+                "BA7001",
+                PunishmentType.BAN,
+                "00000000-0000-0000-0000-000000000701",
+                "198.51.100.70",
+                "TargetUser",
+                "executor-uuid",
+                "proxy evasion",
+                start,
+                end,
+                false,
+                false,
+                true,
+                false,
+                Map.of("ip_punishment", "true")
+        );
+
+        service.sendUnbanWebhook("TargetUser", mock(CommandSource.class), false, "appeal granted", record);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, String>> contextCaptor = ArgumentCaptor.forClass((Class<Map<String, String>>) (Class<?>) Map.class);
+        verify(discordWebhookService).sendAction(
+                eq("unban"),
+                eq("TargetUser"),
+                eq("Console"),
+                eq("appeal granted"),
+                eq("BA7001"),
+                eq("UNBAN"),
+                eq(true),
+                contextCaptor.capture()
+        );
+
+        Map<String, String> context = contextCaptor.getValue();
+        assertEquals("BA7001", context.get("related_action_id"));
+        assertEquals("00000000-0000-0000-0000-000000000701", context.get("target_uuid"));
+        assertEquals("198.51.100.70", context.get("target_ip"));
+        assertEquals("true", context.get("issued_offline"));
+        assertNotEquals("N/A", context.get("duration"));
+        assertEquals("UNBAN", context.get("action_label"));
+    }
+
+    @Test
+    void sendUnmuteWebhookUsesRelatedRecordContext() {
+        DiscordWebhookService discordWebhookService = mock(DiscordWebhookService.class);
+        PunishmentService service = new PunishmentService(
+                mock(ProxyServer.class),
+                mock(PunishmentRepository.class),
+                mock(ModerationActionRepository.class),
+                mock(ActionIdService.class),
+                mock(MessageService.class),
+                discordWebhookService
+        );
+
+        Instant start = Instant.parse("2026-04-18T08:00:00Z");
+        Instant end = Instant.parse("2026-04-18T12:00:00Z");
+        PunishmentRecord record = new PunishmentRecord(
+                "MU7001",
+                PunishmentType.MUTE,
+                "00000000-0000-0000-0000-000000000702",
+                "203.0.113.70",
+                "MutedUser",
+                "executor-uuid",
+                "chat abuse",
+                start,
+                end,
+                false,
+                false,
+                true,
+                false,
+                Map.of(
+                        "template", "spam",
+                        "template_step", "3rd offense",
+                        "template_step_number", "3"
+                )
+        );
+
+        service.sendUnmuteWebhook("MutedUser", mock(CommandSource.class), "appeal accepted", record);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, String>> contextCaptor = ArgumentCaptor.forClass((Class<Map<String, String>>) (Class<?>) Map.class);
+        verify(discordWebhookService).sendAction(
+                eq("unmute"),
+                eq("MutedUser"),
+                eq("Console"),
+                eq("appeal accepted"),
+                eq("MU7001"),
+                eq("UNMUTE"),
+                eq(false),
+                contextCaptor.capture()
+        );
+
+        Map<String, String> context = contextCaptor.getValue();
+        assertEquals("MU7001", context.get("related_action_id"));
+        assertEquals("00000000-0000-0000-0000-000000000702", context.get("target_uuid"));
+        assertEquals("203.0.113.70", context.get("target_ip"));
+        assertEquals("spam", context.get("template"));
+        assertEquals("true", context.get("template_used"));
+        assertNotEquals("N/A", context.get("start_time"));
+        assertNotEquals("N/A", context.get("end_time"));
+        assertEquals("UNMUTE", context.get("action_label"));
+    }
+
+    @Test
+    void sendVoidWebhookUsesTargetRecordContext() {
+        DiscordWebhookService discordWebhookService = mock(DiscordWebhookService.class);
+        PunishmentService service = new PunishmentService(
+                mock(ProxyServer.class),
+                mock(PunishmentRepository.class),
+                mock(ModerationActionRepository.class),
+                mock(ActionIdService.class),
+                mock(MessageService.class),
+                discordWebhookService
+        );
+
+        Instant start = Instant.parse("2026-04-17T08:00:00Z");
+        PunishmentRecord record = new PunishmentRecord(
+                "WR7001",
+                PunishmentType.WARN,
+                "00000000-0000-0000-0000-000000000703",
+                "203.0.113.71",
+                "WarnedUser",
+                "executor-uuid",
+                "legacy warning",
+                start,
+                null,
+                false,
+                true,
+                false,
+                false,
+                Map.of(
+                        "template", "chat",
+                        "template_step", "2nd offense",
+                        "template_step_number", "2"
+                )
+        );
+
+        service.sendVoidWebhook("WR7001", mock(CommandSource.class), false, "removed in review", record);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, String>> contextCaptor = ArgumentCaptor.forClass((Class<Map<String, String>>) (Class<?>) Map.class);
+        verify(discordWebhookService).sendAction(
+                eq("void"),
+                eq("WR7001"),
+                eq("Console"),
+                eq("removed in review"),
+                eq("WR7001"),
+                eq("VOID"),
+                eq(false),
+                contextCaptor.capture()
+        );
+
+        Map<String, String> context = contextCaptor.getValue();
+        assertEquals("WR7001", context.get("related_action_id"));
+        assertEquals("00000000-0000-0000-0000-000000000703", context.get("target_uuid"));
+        assertEquals("203.0.113.71", context.get("target_ip"));
+        assertEquals("chat", context.get("template"));
+        assertEquals("chat", context.get("step_down_template"));
+        assertNotEquals("N/A", context.get("step_down_step"));
+        assertEquals("VOID", context.get("action_label"));
     }
 
     @Test

@@ -357,11 +357,13 @@ public final class FluxCommandRegistrar {
         String targetDisplay = input;
         String auditTargetReference = input;
         boolean ipPunishment = false;
+        Optional<PunishmentRecord> unbannedRecord = Optional.empty();
         String relatedPunishmentId = null;
         if (NetworkUtil.isIpLiteral(input)) {
             Optional<PunishmentRecord> activeBan = punishmentService.activeBan(null, null, input);
             changed = punishmentService.unbanByIp(input);
             ipPunishment = activeBan.map(punishmentService::isIpPunishment).orElse(false);
+            unbannedRecord = activeBan;
             relatedPunishmentId = activeBan.map(PunishmentRecord::id).orElse(null);
             auditTargetReference = input;
         } else {
@@ -375,6 +377,7 @@ public final class FluxCommandRegistrar {
                     targetDisplay = displayTarget(record, id);
                     auditTargetReference = auditTargetReference(record, id);
                     ipPunishment = punishmentService.isIpPunishment(record);
+                    unbannedRecord = Optional.of(record);
                     relatedPunishmentId = id;
                     resolvedById = true;
                 }
@@ -393,6 +396,7 @@ public final class FluxCommandRegistrar {
                 targetDisplay = target.username();
                 auditTargetReference = target.username();
                 ipPunishment = activeBan.map(punishmentService::isIpPunishment).orElse(false);
+                unbannedRecord = activeBan;
                 relatedPunishmentId = activeBan.map(PunishmentRecord::id).orElse(null);
             }
         }
@@ -408,7 +412,13 @@ public final class FluxCommandRegistrar {
                 invocation.source(),
                 reason
         );
-        punishmentService.sendUnbanWebhook(targetDisplay, invocation.source(), ipPunishment, reason);
+            punishmentService.sendUnbanWebhook(
+                targetDisplay,
+                invocation.source(),
+                ipPunishment,
+                reason,
+                unbannedRecord.orElse(null)
+            );
         messageService.sendActionUpdated(invocation.source(), targetDisplay);
     }
 
@@ -476,7 +486,7 @@ public final class FluxCommandRegistrar {
                 invocation.source(),
                 reason
         );
-        punishmentService.sendUnmuteWebhook(targetDisplay, invocation.source(), reason);
+            punishmentService.sendUnmuteWebhook(targetDisplay, invocation.source(), reason, unmutedRecord.orElse(null));
         unmutedRecord.ifPresent(punishmentService::notifyPlayerUnmuted);
         messageService.sendActionUpdated(invocation.source(), targetDisplay);
     }

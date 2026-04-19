@@ -295,59 +295,52 @@ public final class PunishmentService {
     }
 
     public void sendUnbanWebhook(String target, CommandSource executor, boolean ipPunishment, String reason) {
-        Map<String, String> context = new HashMap<>();
-        context.put("related_action_id", "N/A");
-        context.put("duration", "N/A");
-        context.put("template", "N/A");
-        context.put("template_step", "N/A");
-        context.put("template_step_number", "N/A");
-        context.put("step_down_template", "N/A");
-        context.put("step_down_step", "N/A");
-        context.put("template_used", "false");
-        context.put("target_uuid", "N/A");
-        context.put("target_ip", "N/A");
-        context.put("start_time", "N/A");
-        context.put("end_time", "N/A");
-        context.put("issued_offline", "N/A");
-        context.put("executor_type", executor instanceof Player ? "PLAYER" : "CONSOLE");
-        context.put("action_label", "UNBAN");
+        sendUnbanWebhook(target, executor, ipPunishment, reason, null);
+    }
+
+    public void sendUnbanWebhook(
+            String target,
+            CommandSource executor,
+            boolean ipPunishment,
+            String reason,
+            PunishmentRecord relatedRecord
+    ) {
+        boolean effectiveIpPunishment = relatedRecord != null ? isIpPunishment(relatedRecord) : ipPunishment;
+        Map<String, String> context = buildReversalContext("UNBAN", executor, relatedRecord);
+        String relatedActionId = relatedRecord == null ? "N/A" : safeNullable(relatedRecord.id());
         discordWebhookService.sendAction(
                 "unban",
                 target,
                 executorName(executor),
                 reason,
-                "N/A",
+                relatedActionId,
                 "UNBAN",
-                ipPunishment,
+                effectiveIpPunishment,
                 context
         );
     }
 
     public void sendUnmuteWebhook(String target, CommandSource executor, String reason) {
-        Map<String, String> context = new HashMap<>();
-        context.put("related_action_id", "N/A");
-        context.put("duration", "N/A");
-        context.put("template", "N/A");
-        context.put("template_step", "N/A");
-        context.put("template_step_number", "N/A");
-        context.put("step_down_template", "N/A");
-        context.put("step_down_step", "N/A");
-        context.put("template_used", "false");
-        context.put("target_uuid", "N/A");
-        context.put("target_ip", "N/A");
-        context.put("start_time", "N/A");
-        context.put("end_time", "N/A");
-        context.put("issued_offline", "N/A");
-        context.put("executor_type", executor instanceof Player ? "PLAYER" : "CONSOLE");
-        context.put("action_label", "UNMUTE");
+        sendUnmuteWebhook(target, executor, reason, null);
+    }
+
+    public void sendUnmuteWebhook(
+            String target,
+            CommandSource executor,
+            String reason,
+            PunishmentRecord relatedRecord
+    ) {
+        boolean ipPunishment = relatedRecord != null && isIpPunishment(relatedRecord);
+        Map<String, String> context = buildReversalContext("UNMUTE", executor, relatedRecord);
+        String relatedActionId = relatedRecord == null ? "N/A" : safeNullable(relatedRecord.id());
         discordWebhookService.sendAction(
                 "unmute",
                 target,
                 executorName(executor),
                 reason,
-                "N/A",
+                relatedActionId,
                 "UNMUTE",
-                false,
+                ipPunishment,
                 context
         );
     }
@@ -359,29 +352,19 @@ public final class PunishmentService {
             String reason,
             PunishmentRecord targetRecord
     ) {
-        Map<String, String> context = new HashMap<>();
-        context.put("related_action_id", targetActionId);
-        context.put("duration", "N/A");
-        context.put("template", "N/A");
-        context.put("template_step", "N/A");
-        context.put("template_step_number", "N/A");
-        context.put("step_down_template", "N/A");
-        context.put("step_down_step", "N/A");
-        context.put("template_used", "false");
-        context.put("target_uuid", "N/A");
-        context.put("target_ip", "N/A");
-        context.put("start_time", "N/A");
-        context.put("end_time", "N/A");
-        context.put("issued_offline", "N/A");
-        context.put("executor_type", executor instanceof Player ? "PLAYER" : "CONSOLE");
-        context.put("action_label", "VOID");
-        applyVoidTemplateContext(context, targetRecord);
+            Map<String, String> context = buildReversalContext("VOID", executor, targetRecord);
+            if ((context.get("related_action_id") == null || "N/A".equals(context.get("related_action_id")))
+                && targetActionId != null
+                && !targetActionId.isBlank()) {
+                context.put("related_action_id", targetActionId);
+            }
+            String webhookActionId = targetRecord == null ? safeNullable(targetActionId) : safeNullable(targetRecord.id());
         discordWebhookService.sendAction(
                 "void",
                 targetActionId,
                 executorName(executor),
                 reason,
-                targetActionId,
+                webhookActionId,
                 "VOID",
                 ipPunishment,
                 context
@@ -505,6 +488,47 @@ public final class PunishmentService {
         context.put("related_action_id", record.id());
         context.put("executor_type", request.executor() instanceof Player ? "PLAYER" : "CONSOLE");
         context.put("action_label", actionKey.toUpperCase());
+        return context;
+    }
+
+    private Map<String, String> buildReversalContext(
+            String actionLabel,
+            CommandSource executor,
+            PunishmentRecord relatedRecord
+    ) {
+        Map<String, String> context = new HashMap<>();
+        context.put("related_action_id", "N/A");
+        context.put("duration", "N/A");
+        context.put("template", "N/A");
+        context.put("template_step", "N/A");
+        context.put("template_step_number", "N/A");
+        context.put("step_down_template", "N/A");
+        context.put("step_down_step", "N/A");
+        context.put("template_used", "false");
+        context.put("target_uuid", "N/A");
+        context.put("target_ip", "N/A");
+        context.put("start_time", "N/A");
+        context.put("end_time", "N/A");
+        context.put("issued_offline", "N/A");
+        context.put("executor_type", executor instanceof Player ? "PLAYER" : "CONSOLE");
+        context.put("action_label", actionLabel);
+
+        if (relatedRecord != null) {
+            context.put("related_action_id", safeNullable(relatedRecord.id()));
+            context.put("target_uuid", safeNullable(relatedRecord.targetUuid()));
+            context.put("target_ip", safeNullable(relatedRecord.targetIp()));
+            context.put("duration", PunishmentTimeFormatter.formatRemaining(relatedRecord.startTime(), relatedRecord.endTime()));
+            context.put("start_time", PunishmentTimeFormatter.formatTimestampHumanUtc(relatedRecord.startTime()));
+            context.put(
+                    "end_time",
+                    relatedRecord.endTime() == null
+                            ? PunishmentTimeFormatter.NEVER_LABEL
+                            : PunishmentTimeFormatter.formatTimestampHumanUtc(relatedRecord.endTime())
+            );
+            context.put("issued_offline", Boolean.toString(relatedRecord.issuedOffline()));
+            applyVoidTemplateContext(context, relatedRecord);
+        }
+
         return context;
     }
 

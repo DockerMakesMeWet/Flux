@@ -51,7 +51,7 @@ class FluxCommandRegistrarWebhookTest {
         FluxCommandRegistrar registrar = registrar(targetResolver, punishmentService);
         invoke(registrar, "runUnban", invocation);
 
-        verify(punishmentService).sendUnbanWebhook("TargetUser", source, true, "appeal accepted");
+        verify(punishmentService).sendUnbanWebhook("TargetUser", source, true, "appeal accepted", activeBan);
         verify(punishmentService).auditReversalAction(ModerationActionType.UNBAN, "TargetUser", "BAN001", source, "appeal accepted");
     }
 
@@ -76,7 +76,7 @@ class FluxCommandRegistrarWebhookTest {
         invoke(registrar, "runUnban", invocation);
 
         verify(punishmentService).unbanByTarget(null, "NeverSeen");
-        verify(punishmentService).sendUnbanWebhook("NeverSeen", source, false, "record review");
+        verify(punishmentService).sendUnbanWebhook("NeverSeen", source, false, "record review", activeBan);
         verify(punishmentService).auditReversalAction(ModerationActionType.UNBAN, "NeverSeen", "BAN010", source, "record review");
     }
 
@@ -100,7 +100,7 @@ class FluxCommandRegistrarWebhookTest {
         invoke(registrar, "runUnban", invocation);
 
         verify(punishmentService).unbanById("AB1234");
-        verify(punishmentService).sendUnbanWebhook("TargetUser", source, false, "manual correction");
+        verify(punishmentService).sendUnbanWebhook("TargetUser", source, false, "manual correction", record);
         verify(punishmentService).auditReversalAction(ModerationActionType.UNBAN, "TargetUser", "AB1234", source, "manual correction");
     }
 
@@ -138,7 +138,7 @@ class FluxCommandRegistrarWebhookTest {
         FluxCommandRegistrar registrar = registrar(targetResolver, punishmentService);
         invoke(registrar, "runUnban", invocation);
 
-        verify(punishmentService).sendUnbanWebhook("198.51.100.40", source, false, "false positive");
+        verify(punishmentService).sendUnbanWebhook("198.51.100.40", source, false, "false positive", record);
         verify(punishmentService).auditReversalAction(ModerationActionType.UNBAN, "198.51.100.40", "BA2001", source, "false positive");
     }
 
@@ -159,7 +159,7 @@ class FluxCommandRegistrarWebhookTest {
         FluxCommandRegistrar registrar = registrar(targetResolver, punishmentService);
         invoke(registrar, "runUnmute", invocation);
 
-        verify(punishmentService).sendUnmuteWebhook("TargetUser", source, "appeal accepted");
+        verify(punishmentService).sendUnmuteWebhook("TargetUser", source, "appeal accepted", null);
         verify(punishmentService).auditReversalAction(ModerationActionType.UNMUTE, "TargetUser", null, source, "appeal accepted");
     }
 
@@ -183,7 +183,7 @@ class FluxCommandRegistrarWebhookTest {
         invoke(registrar, "runUnmute", invocation);
 
         verify(punishmentService).unmuteByTarget(null, "NeverSeen");
-        verify(punishmentService).sendUnmuteWebhook("NeverSeen", source, "manual lift");
+        verify(punishmentService).sendUnmuteWebhook("NeverSeen", source, "manual lift", activeMute);
         verify(punishmentService).auditReversalAction(ModerationActionType.UNMUTE, "NeverSeen", "MU9011", source, "manual lift");
         verify(punishmentService).notifyPlayerUnmuted(activeMute);
     }
@@ -206,7 +206,7 @@ class FluxCommandRegistrarWebhookTest {
         FluxCommandRegistrar registrar = registrar(targetResolver, punishmentService);
         invoke(registrar, "runUnmute", invocation);
 
-        verify(punishmentService).sendUnmuteWebhook("TargetUser", source, "appeal accepted");
+        verify(punishmentService).sendUnmuteWebhook("TargetUser", source, "appeal accepted", record);
         verify(punishmentService).auditReversalAction(ModerationActionType.UNMUTE, "TargetUser", "MU1234", source, "appeal accepted");
         verify(punishmentService).notifyPlayerUnmuted(record);
     }
@@ -244,7 +244,7 @@ class FluxCommandRegistrarWebhookTest {
         FluxCommandRegistrar registrar = registrar(targetResolver, punishmentService);
         invoke(registrar, "runUnmute", invocation);
 
-        verify(punishmentService).sendUnmuteWebhook("00000000-0000-0000-0000-000000000220", source, "expired already");
+        verify(punishmentService).sendUnmuteWebhook("00000000-0000-0000-0000-000000000220", source, "expired already", record);
         verify(punishmentService).auditReversalAction(ModerationActionType.UNMUTE, "00000000-0000-0000-0000-000000000220", "MU2201", source, "expired already");
         verify(punishmentService).notifyPlayerUnmuted(record);
     }

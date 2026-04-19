@@ -13,7 +13,7 @@ import org.slf4j.Logger;
 @Plugin(
         id = "flux",
         name = "Flux",
-    version = "1.5.0",
+    version = "1.5.1",
         description = "A modern, configurable moderation system for Velocity.",
         authors = {"Flux Team"}
 )
