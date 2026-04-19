@@ -94,7 +94,7 @@ public final class FluxBootstrap {
         }
 
         try {
-            activeRuntime.applyConfiguration(configuration, logger);
+            activeRuntime.applyConfiguration(configuration, logger, server, plugin);
         } catch (Exception exception) {
             logger.error("Failed to apply reloaded Flux configuration.", exception);
             return false;
@@ -143,7 +143,8 @@ public final class FluxBootstrap {
                 moderationActionRepository,
                 actionIdService,
                 messageService,
-                discordWebhookService
+            discordWebhookService,
+            mastersService
         );
 
         ModerationListener moderationListener = new ModerationListener(
@@ -180,6 +181,8 @@ public final class FluxBootstrap {
                 messageService,
                 templateService,
                 discordWebhookService,
+            configuration.main().masters != null && configuration.main().masters.autoUpdate,
+            mastersAutoUpdateIntervalMinutes(configuration.main().masters),
                 databaseConfigSignature(databaseConfig)
         );
     }
@@ -210,6 +213,13 @@ public final class FluxBootstrap {
         return value == null ? "" : value;
     }
 
+    private static long mastersAutoUpdateIntervalMinutes(MainConfig.MastersConfig mastersConfig) {
+        if (mastersConfig == null || mastersConfig.autoUpdateIntervalMinutes <= 0) {
+            return 30L;
+        }
+        return mastersConfig.autoUpdateIntervalMinutes;
+    }
+
     private void updateServiceRegistry(ConfigurationBundle configuration) {
         serviceRegistry.clear();
         serviceRegistry.register(ProxyServer.class, server);
@@ -235,6 +245,9 @@ public final class FluxBootstrap {
         private final MessageService messageService;
         private final TemplateService templateService;
         private final DiscordWebhookService discordWebhookService;
+        private boolean mastersAutoUpdateEnabled;
+        private long mastersAutoUpdateIntervalMinutes;
+        private ScheduledTask mastersAutoRefreshTask;
         private final String appliedDatabaseConfigSignature;
         private ScheduledTask muteExpiryNotificationTask;
 
@@ -243,11 +256,13 @@ public final class FluxBootstrap {
                 FluxCommandRegistrar commandRegistrar,
                 MastersService mastersService,
                 ModerationListener moderationListener,
-            PunishmentService punishmentService,
-            MessageService messageService,
-            TemplateService templateService,
-            DiscordWebhookService discordWebhookService,
-            String appliedDatabaseConfigSignature
+                PunishmentService punishmentService,
+                MessageService messageService,
+                TemplateService templateService,
+                DiscordWebhookService discordWebhookService,
+                boolean mastersAutoUpdateEnabled,
+                long mastersAutoUpdateIntervalMinutes,
+                String appliedDatabaseConfigSignature
         ) {
             this.databaseManager = databaseManager;
             this.commandRegistrar = commandRegistrar;
@@ -257,6 +272,8 @@ public final class FluxBootstrap {
             this.messageService = messageService;
             this.templateService = templateService;
             this.discordWebhookService = discordWebhookService;
+            this.mastersAutoUpdateEnabled = mastersAutoUpdateEnabled;
+            this.mastersAutoUpdateIntervalMinutes = Math.max(1L, mastersAutoUpdateIntervalMinutes);
             this.appliedDatabaseConfigSignature = appliedDatabaseConfigSignature == null ? "" : appliedDatabaseConfigSignature;
         }
 
@@ -273,13 +290,14 @@ public final class FluxBootstrap {
                     })
                     .repeat(1, TimeUnit.SECONDS)
                     .schedule();
+                    rescheduleMastersAutoRefreshTask(server, plugin, logger);
         }
 
         MastersService mastersService() {
             return mastersService;
         }
 
-        void applyConfiguration(ConfigurationBundle configuration, Logger logger) {
+        void applyConfiguration(ConfigurationBundle configuration, Logger logger, ProxyServer server, Object plugin) {
             if (configuration == null) {
                 return;
             }
@@ -288,6 +306,10 @@ public final class FluxBootstrap {
             templateService.updateTemplates(configuration.templates());
             discordWebhookService.updateConfig(configuration.discord());
             moderationListener.updateMutedCommands(configuration.mutedCommands());
+            MainConfig.MastersConfig mastersConfig = configuration.main().masters;
+            this.mastersAutoUpdateEnabled = mastersConfig != null && mastersConfig.autoUpdate;
+            this.mastersAutoUpdateIntervalMinutes = FluxBootstrap.mastersAutoUpdateIntervalMinutes(mastersConfig);
+            rescheduleMastersAutoRefreshTask(server, plugin, logger);
 
             String reloadedDatabaseSignature = FluxBootstrap.databaseConfigSignature(configuration.main().database);
             if (!appliedDatabaseConfigSignature.equals(reloadedDatabaseSignature)) {
@@ -295,10 +317,37 @@ public final class FluxBootstrap {
             }
         }
 
+        private void rescheduleMastersAutoRefreshTask(ProxyServer server, Object plugin, Logger logger) {
+            if (mastersAutoRefreshTask != null) {
+                mastersAutoRefreshTask.cancel();
+                mastersAutoRefreshTask = null;
+            }
+            if (!mastersAutoUpdateEnabled) {
+                return;
+            }
+
+            long intervalMinutes = Math.max(1L, mastersAutoUpdateIntervalMinutes);
+            mastersAutoRefreshTask = server.getScheduler()
+                    .buildTask(plugin, () -> {
+                        try {
+                            mastersService.refreshAsync();
+                        } catch (RuntimeException exception) {
+                            logger.warn("Flux masters auto-refresh task failed to trigger.", exception);
+                        }
+                    })
+                    .delay(intervalMinutes, TimeUnit.MINUTES)
+                    .repeat(intervalMinutes, TimeUnit.MINUTES)
+                    .schedule();
+        }
+
         void shutdown(ProxyServer server, Object plugin) {
             if (muteExpiryNotificationTask != null) {
                 muteExpiryNotificationTask.cancel();
                 muteExpiryNotificationTask = null;
+            }
+            if (mastersAutoRefreshTask != null) {
+                mastersAutoRefreshTask.cancel();
+                mastersAutoRefreshTask = null;
             }
             commandRegistrar.unregisterAll();
             server.getEventManager().unregisterListeners(plugin);

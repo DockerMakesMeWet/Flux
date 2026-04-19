@@ -115,6 +115,10 @@ public final class MessageService {
         return safeText(messages.commands.usageVoid);
     }
 
+    public String usageVoidAll() {
+        return safeText(messages.commands.usageVoidAll);
+    }
+
     public String usageHistory() {
         return safeText(messages.commands.usageHistory);
     }
@@ -139,6 +143,10 @@ public final class MessageService {
         return safeText(messages.commands.usageCheckIp);
     }
 
+    public String usageCheckWarns() {
+        return safeText(messages.commands.usageCheckWarns);
+    }
+
     public String usageFlux() {
         return safeText(messages.commands.usageFlux);
     }
@@ -149,6 +157,13 @@ public final class MessageService {
 
     public void sendTemplateNotFound(CommandSource source) {
         send(source, messages.commands.templateNotFound, Map.of());
+    }
+
+    public void sendTemplateTypeMismatch(CommandSource source, String commandType, String templateType) {
+        send(source, messages.commands.templateTypeMismatch, Map.of(
+                "command_type", safeText(commandType),
+                "template_type", safeText(templateType)
+        ));
     }
 
     public void sendInvalidPage(CommandSource source, String page) {
@@ -177,6 +192,13 @@ public final class MessageService {
 
     public void sendVoidUpdated(CommandSource source, String id) {
         send(source, messages.commands.voidUpdated, Map.of("id", safeText(id)));
+    }
+
+    public void sendVoidAllUpdated(CommandSource source, String target, int count) {
+        send(source, messages.commands.voidAllUpdated, Map.of(
+                "target", safeText(target),
+                "count", Integer.toString(Math.max(0, count))
+        ));
     }
 
     public void sendActionNotFound(CommandSource source) {
@@ -253,6 +275,10 @@ public final class MessageService {
         send(source, messages.commands.checkIpHeader, Map.of("target", safeText(target)));
     }
 
+    public void sendCheckWarnsHeader(CommandSource source, String target) {
+        send(source, messages.commands.checkWarnsHeader, Map.of("target", safeText(target)));
+    }
+
     public void sendCheckIpFooter(CommandSource source, String target, int count) {
         send(source, messages.commands.checkIpFooter, Map.of(
                 "target", safeText(target),
@@ -264,19 +290,12 @@ public final class MessageService {
             CommandSource source,
             String id,
             String type,
-            String reason,
-            String expires,
-            String voided,
-            String voidReason
+            String reason
     ) {
         send(source, messages.commands.checkSummaryEntry, Map.of(
                 "id", safeText(id),
                 "type", safeText(type),
-                "reason", safeText(reason),
-                "expires", safeText(expires),
-                "voided", safeText(voided),
-                "void_reason", safeText(voidReason),
-                "void_note", voidNote(voided, voidReason)
+            "reason", safeText(reason)
         ));
     }
 
@@ -285,20 +304,13 @@ public final class MessageService {
             String id,
             String type,
             String reason,
-            String target,
-            String expires,
-            String voided,
-            String voidReason
+            String target
     ) {
         send(source, messages.commands.checkSummaryEntryWithTarget, Map.of(
                 "id", safeText(id),
                 "type", safeText(type),
                 "reason", safeText(reason),
-                "target", safeText(target),
-                "expires", safeText(expires),
-                "voided", safeText(voided),
-                "void_reason", safeText(voidReason),
-                "void_note", voidNote(voided, voidReason)
+                "target", safeText(target)
         ));
     }
 
@@ -317,17 +329,12 @@ public final class MessageService {
             CommandSource source,
             String id,
             String type,
-            String reason,
-            String voided,
-            String voidReason
+            String reason
     ) {
         Map<String, String> placeholders = Map.of(
                 "id", safeText(id),
                 "type", safeText(type),
-                "reason", safeText(reason),
-                "voided", safeText(voided),
-                "void_reason", safeText(voidReason),
-                "void_note", voidNote(voided, voidReason)
+            "reason", safeText(reason)
         );
         Component component = renderWithPrefix(messages.commands.historyEntry, placeholders)
                 .hoverEvent(HoverEvent.showText(component(messages.commands.historyEntryHover, placeholders)))
@@ -520,6 +527,7 @@ public final class MessageService {
     Component mutedMessage(PunishmentRecord mute, Instant now) {
         Instant endTime = mute == null ? null : mute.endTime();
         return renderWithUserPrefix(messages.screens.mutedMessage, Map.of(
+                "id", safeText(mute == null ? null : mute.id()),
                 "time_left", safeText(PunishmentTimeFormatter.formatRemaining(now, endTime)),
                 "expires_at", safeText(PunishmentTimeFormatter.formatExpiry(endTime))
         ));
@@ -599,10 +607,4 @@ public final class MessageService {
         return value;
     }
 
-    private static String voidNote(String voided, String voidReason) {
-        if (!Boolean.parseBoolean(safeText(voided))) {
-            return "";
-        }
-        return ", void_reason=" + safeText(voidReason);
-    }
 }

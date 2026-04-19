@@ -3,6 +3,7 @@ package org.owl.flux.command;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.inOrder;
 
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.command.SimpleCommand;
@@ -13,6 +14,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
+import org.owl.flux.data.model.ModerationActionRecord;
+import org.owl.flux.data.model.ModerationActionType;
 import org.owl.flux.data.model.PlayerSnapshot;
 import org.owl.flux.data.model.PunishmentRecord;
 import org.owl.flux.data.model.PunishmentType;
@@ -220,6 +224,96 @@ class FluxCommandRegistrarCheckCommandTest {
     }
 
     @Test
+    void runCheckWarnsSupportsNeverSeenUsernameAndExcludesVoidedWarns() throws Exception {
+        MessageService messageService = mock(MessageService.class);
+        TargetResolver targetResolver = mock(TargetResolver.class);
+        PunishmentRepository punishmentRepository = mock(PunishmentRepository.class);
+        FluxCommandRegistrar registrar = registrar(messageService, targetResolver, mock(PunishmentService.class),
+                punishmentRepository, mock(PlayerRepository.class));
+        CommandSource source = mock(CommandSource.class);
+
+        PunishmentRecord visibleWarn = new PunishmentRecord(
+                "WR001",
+                PunishmentType.WARN,
+                null,
+                null,
+                "NeverSeen",
+                "executor-uuid",
+                "warn reason",
+                Instant.now(),
+                null,
+                false,
+                false,
+                false,
+                false,
+                Map.of()
+        );
+        PunishmentRecord voidedWarn = new PunishmentRecord(
+                "WR002",
+                PunishmentType.WARN,
+                null,
+                null,
+                "NeverSeen",
+                "executor-uuid",
+                "voided warn",
+                Instant.now(),
+                null,
+                false,
+                true,
+                "appeal",
+                false,
+                false,
+                Map.of()
+        );
+        PunishmentRecord ban = punishment("BA001", null, null);
+
+        when(targetResolver.resolvePunishmentTarget("NeverSeen"))
+                .thenReturn(Optional.of(new TargetProfile(null, "NeverSeen", null, null)));
+        when(punishmentRepository.historyByTarget(null, "NeverSeen"))
+                .thenReturn(List.of(visibleWarn, voidedWarn, ban));
+
+        invoke(registrar, "runCheckWarns", invocation(source, "NeverSeen"));
+
+        verify(messageService).sendCheckWarnsHeader(source, "NeverSeen");
+        verify(messageService).sendCheckSummaryEntry(source, "WR001", "WARN", "warn reason");
+        verify(messageService).sendPaginationFooter(source, 1, 1, "/checkwarns NeverSeen");
+    }
+
+    @Test
+    void runCheckWarnsSupportsIpInput() throws Exception {
+        MessageService messageService = mock(MessageService.class);
+        PunishmentRepository punishmentRepository = mock(PunishmentRepository.class);
+        FluxCommandRegistrar registrar = registrar(messageService, mock(TargetResolver.class), mock(PunishmentService.class),
+                punishmentRepository, mock(PlayerRepository.class));
+        CommandSource source = mock(CommandSource.class);
+
+        PunishmentRecord warn = new PunishmentRecord(
+                "WR010",
+                PunishmentType.WARN,
+                "target-uuid",
+                "203.0.113.10",
+                "TargetUser",
+                "executor-uuid",
+                "warn reason",
+                Instant.now(),
+                null,
+                false,
+                false,
+                false,
+                false,
+                Map.of()
+        );
+        when(punishmentRepository.historyByIp("203.0.113.10")).thenReturn(List.of(warn));
+
+        invoke(registrar, "runCheckWarns", invocation(source, "203.0.113.10"));
+
+        verify(punishmentRepository).historyByIp("203.0.113.10");
+        verify(messageService).sendCheckWarnsHeader(source, "203.0.113.10");
+        verify(messageService).sendCheckSummaryEntryWithTarget(source, "WR010", "WARN", "warn reason", "TargetUser");
+        verify(messageService).sendPaginationFooter(source, 1, 1, "/checkwarns 203.0.113.10");
+    }
+
+    @Test
     void runHistorySupportsNeverSeenUsernameFallback() throws Exception {
         MessageService messageService = mock(MessageService.class);
         TargetResolver targetResolver = mock(TargetResolver.class);
@@ -237,9 +331,31 @@ class FluxCommandRegistrarCheckCommandTest {
 
         verify(punishmentRepository).historyByTarget(null, "NeverSeen");
         verify(messageService).sendHistoryHeader(source, "NeverSeen");
-        verify(messageService).sendHistoryEntry(source, "HI001", "BAN", "reason", "false", null);
+                verify(messageService).sendHistoryEntry(source, "HI001", "BAN", "reason");
         verify(messageService).sendPaginationFooter(source, 1, 1, "/history NeverSeen");
     }
+
+        @Test
+        void runHistorySupportsIpInput() throws Exception {
+                MessageService messageService = mock(MessageService.class);
+                PunishmentRepository punishmentRepository = mock(PunishmentRepository.class);
+                PunishmentService punishmentService = mock(PunishmentService.class);
+                FluxCommandRegistrar registrar = registrar(messageService, mock(TargetResolver.class), punishmentService,
+                                punishmentRepository, mock(PlayerRepository.class));
+                CommandSource source = mock(CommandSource.class);
+
+                PunishmentRecord history = punishment("HI100", null, "203.0.113.10");
+                when(punishmentRepository.historyByIp("203.0.113.10")).thenReturn(List.of(history));
+                when(punishmentService.historyActionsByTarget(null, "203.0.113.10")).thenReturn(List.of());
+
+                invoke(registrar, "runHistory", invocation(source, "203.0.113.10"));
+
+                verify(punishmentRepository).historyByIp("203.0.113.10");
+                verify(punishmentService).historyActionsByTarget(null, "203.0.113.10");
+                verify(messageService).sendHistoryHeader(source, "203.0.113.10");
+                verify(messageService).sendHistoryEntry(source, "HI100", "BAN", "reason");
+                verify(messageService).sendPaginationFooter(source, 1, 1, "/history 203.0.113.10");
+        }
 
     @Test
     void runHistoryIncludesVoidReasonWhenPresent() throws Exception {
@@ -275,7 +391,55 @@ class FluxCommandRegistrarCheckCommandTest {
 
         invoke(registrar, "runHistory", invocation(source, "NeverSeen"));
 
-        verify(messageService).sendHistoryEntry(source, "HI777", "BAN", "initial reason", "true", "appeal accepted");
+        verify(messageService).sendHistoryEntry(source, "HI777", "BAN", "initial reason");
+    }
+
+    @Test
+    void runHistoryMergesModerationActionsInChronologicalOrder() throws Exception {
+        MessageService messageService = mock(MessageService.class);
+        TargetResolver targetResolver = mock(TargetResolver.class);
+        PunishmentRepository punishmentRepository = mock(PunishmentRepository.class);
+        PunishmentService punishmentService = mock(PunishmentService.class);
+        FluxCommandRegistrar registrar = registrar(messageService, targetResolver, punishmentService,
+                punishmentRepository, mock(PlayerRepository.class));
+        CommandSource source = mock(CommandSource.class);
+
+        PunishmentRecord punishment = new PunishmentRecord(
+                "HI010",
+                PunishmentType.BAN,
+                null,
+                null,
+                "NeverSeen",
+                "executor-uuid",
+                "initial ban",
+                Instant.parse("2026-01-01T00:00:00Z"),
+                null,
+                false,
+                false,
+                false,
+                false,
+                Map.of()
+        );
+        ModerationActionRecord reversal = new ModerationActionRecord(
+                42L,
+                ModerationActionType.UNBAN,
+                "NeverSeen",
+                "HI010",
+                "executor-uuid",
+                "appeal accepted",
+                Instant.parse("2026-01-02T00:00:00Z")
+        );
+
+        when(targetResolver.resolvePunishmentTarget("NeverSeen"))
+                .thenReturn(Optional.of(new TargetProfile(null, "NeverSeen", null, null)));
+        when(punishmentRepository.historyByTarget(null, "NeverSeen")).thenReturn(List.of(punishment));
+        when(punishmentService.historyActionsByTarget(null, "NeverSeen")).thenReturn(List.of(reversal));
+
+        invoke(registrar, "runHistory", invocation(source, "NeverSeen"));
+
+        InOrder order = inOrder(messageService);
+        order.verify(messageService).sendHistoryEntry(source, "HI010", "UNBAN", "appeal accepted");
+        order.verify(messageService).sendHistoryEntry(source, "HI010", "BAN", "initial ban");
     }
 
     @Test

@@ -103,8 +103,11 @@ public final class MessagesConfig {
         @Setting("usage-void")
         public String usageVoid = "/void <id> <reason>";
 
+        @Setting("usage-voidall")
+        public String usageVoidAll = "/voidall <user/ip> <reason>";
+
         @Setting("usage-history")
-        public String usageHistory = "/history <user> [page]";
+        public String usageHistory = "/history <user/ip> [page]";
 
         @Setting("usage-alts")
         public String usageAlts = "/alts <user> [page]";
@@ -121,6 +124,9 @@ public final class MessagesConfig {
         @Setting("usage-checkip")
         public String usageCheckIp = "/checkip <ip/user> [page]";
 
+        @Setting("usage-checkwarns")
+        public String usageCheckWarns = "/checkwarns <user/ip> [page]";
+
         @Setting("usage-flux")
         public String usageFlux = "/flux [reload|ver|info|version]";
 
@@ -129,6 +135,9 @@ public final class MessagesConfig {
 
         @Setting("template-not-found")
         public String templateNotFound = "<red>Template not found.</red>";
+
+        @Setting("template-type-mismatch")
+        public String templateTypeMismatch = "<red>This command only accepts <command_type> templates. You used a <template_type> template.</red>";
 
         @Setting("invalid-page")
         public String invalidPage = "<red>Invalid page <white><page></white>. Use a positive number.</red>";
@@ -149,6 +158,9 @@ public final class MessagesConfig {
 
         @Setting("void-updated")
         public String voidUpdated = "<yellow>Voided punishment/action <white><id></white>.</yellow>";
+
+        @Setting("voidall-updated")
+        public String voidAllUpdated = "<yellow>Voided <white><count></white> active punishment(s) for <white><target></white>.</yellow>";
 
         @Setting("action-not-found")
         public String actionNotFound = "<red>No matching punishment was found.</red>";
@@ -189,10 +201,10 @@ public final class MessagesConfig {
         public String checkDetailMeta = "<gray>IP Punishment:</gray> <white><ip_punishment></white> <gray>| Template:</gray> <white><template></white> <gray>| Template Step:</gray> <white><template_step></white>";
 
         @Setting("check-summary-entry")
-        public String checkSummaryEntry = "<gray>-</gray> <white><id></white> <yellow><type></yellow> <gray><reason></gray> <dark_gray>(expires=<expires><void_note>)</dark_gray>";
+        public String checkSummaryEntry = "<gray>-</gray> <white><id></white> <yellow><type></yellow> <gray><reason></gray>";
 
         @Setting("check-summary-entry-with-target")
-        public String checkSummaryEntryWithTarget = "<gray>-</gray> <white><id></white> <yellow><type></yellow> <gray><reason></gray> <dark_gray>(target=<target>, expires=<expires><void_note>)</dark_gray>";
+        public String checkSummaryEntryWithTarget = "<gray>-</gray> <white><id></white> <yellow><type></yellow> <gray><reason></gray> <dark_gray>(target=<target>)</dark_gray>";
 
         @Setting("checkplayer-header")
         public String checkPlayerHeader =
@@ -205,6 +217,10 @@ public final class MessagesConfig {
         @Setting("checkip-header")
         public String checkIpHeader =
                 "<gray>===</gray> <yellow>Checking active punishments for IP <white><target></white></yellow> <gray>===</gray>";
+
+        @Setting("checkwarns-header")
+        public String checkWarnsHeader =
+                "<gray>===</gray> <yellow>Checking warnings for <white><target></white></yellow> <gray>===</gray>";
 
         @Setting("checkip-footer")
         public String checkIpFooter =
@@ -219,11 +235,11 @@ public final class MessagesConfig {
                 "<gray>===</gray> <yellow>End history of <white><target></white> (<count>)</yellow> <gray>===</gray>";
 
         @Setting("history-entry")
-        public String historyEntry = "<gray>•</gray> <white><id></white> <yellow><type></yellow> <gray>-</gray> <white><reason></white> <dark_gray>(voided=<voided><void_note>)</dark_gray>";
+        public String historyEntry = "<gray>•</gray> <white><id></white> <yellow><type></yellow> <gray>-</gray> <white><reason></white>";
 
         @Setting("history-entry-hover")
         public String historyEntryHover =
-                "<yellow><bold>History Entry</bold></yellow><newline><gray>ID:</gray> <white><id></white><newline><gray>Type:</gray> <white><type></white><newline><gray>Reason:</gray> <white><reason></white><newline><gray>Voided:</gray> <white><voided></white><newline><gray>Void Reason:</gray> <white><void_reason></white><newline><gold>Click to suggest /check <id></gold>";
+                "<yellow><bold>History Entry</bold></yellow><newline><gray>ID:</gray> <white><id></white><newline><gray>Type:</gray> <white><type></white><newline><gray>Reason:</gray> <white><reason></white><newline><gold>Click to suggest /check <id></gold>";
 
         @Setting("alts-header")
         public String altsHeader = "<yellow>Accounts sharing IP <white><ip></white>:</yellow>";
@@ -307,6 +323,6 @@ public final class MessagesConfig {
 
         @Setting("muted-message")
         public String mutedMessage =
-                "<yellow>You are currently muted and cannot chat right now.</yellow><newline><gray>Time left:</gray> <white><time_left></white><newline><gray>Expires at:</gray> <white><expires_at></white><newline><gray>If this seems wrong, visit <white><discord></white>.</gray>";
+                "<yellow>You are currently muted and cannot chat right now.</yellow><newline><gray>Punishment ID:</gray> <white><id></white><newline><gray>Time left:</gray> <white><time_left></white><newline><gray>Expires at:</gray> <white><expires_at></white><newline><gray>If this seems wrong, visit <white><discord></white>.</gray>";
     }
 }

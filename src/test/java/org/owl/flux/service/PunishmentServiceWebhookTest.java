@@ -16,6 +16,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.velocitypowered.api.command.CommandSource;
+import java.net.InetSocketAddress;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import java.time.Duration;
@@ -34,6 +35,7 @@ import org.owl.flux.data.repository.ModerationActionRepository;
 import org.owl.flux.data.repository.PunishmentRepository;
 import org.owl.flux.integration.DiscordWebhookService;
 import org.owl.flux.service.model.PunishmentRequest;
+import org.owl.flux.service.model.PunishmentResult;
 import org.owl.flux.service.model.TargetProfile;
 
 class PunishmentServiceWebhookTest {
@@ -84,6 +86,152 @@ class PunishmentServiceWebhookTest {
                 eq("BAN"),
                 eq(true),
                 anyMap()
+        );
+    }
+
+    @Test
+    void createBanReapplicationSupersedesExistingAccountBan() {
+        ProxyServer server = mock(ProxyServer.class);
+        when(server.getAllPlayers()).thenReturn(List.of());
+        PunishmentRepository punishmentRepository = mock(PunishmentRepository.class);
+        ActionIdService actionIdService = mock(ActionIdService.class);
+        when(actionIdService.nextUniqueId()).thenReturn("BA9001");
+
+        PunishmentService service = new PunishmentService(
+                server,
+                punishmentRepository,
+                mock(ModerationActionRepository.class),
+                actionIdService,
+                mock(MessageService.class),
+                mock(DiscordWebhookService.class)
+        );
+
+        service.create(new PunishmentRequest(
+                mock(CommandSource.class),
+                new TargetProfile("uuid-1", "TargetUser", "203.0.113.10", null),
+                PunishmentType.BAN,
+                null,
+                "repeat abuse",
+                null,
+                null,
+                false
+        ));
+
+        verify(punishmentRepository).voidSupersededByTarget(
+                "uuid-1",
+                "TargetUser",
+                PunishmentType.BAN,
+                "Superseded by BA9001",
+                "BA9001"
+        );
+    }
+
+    @Test
+    void createIpBanReapplicationSupersedesExistingIpBan() {
+        ProxyServer server = mock(ProxyServer.class);
+        when(server.getAllPlayers()).thenReturn(List.of());
+        PunishmentRepository punishmentRepository = mock(PunishmentRepository.class);
+        ActionIdService actionIdService = mock(ActionIdService.class);
+        when(actionIdService.nextUniqueId()).thenReturn("IB9001");
+
+        PunishmentService service = new PunishmentService(
+                server,
+                punishmentRepository,
+                mock(ModerationActionRepository.class),
+                actionIdService,
+                mock(MessageService.class),
+                mock(DiscordWebhookService.class)
+        );
+
+        service.create(new PunishmentRequest(
+                mock(CommandSource.class),
+                new TargetProfile("uuid-1", "TargetUser", "198.51.100.9", null),
+                PunishmentType.BAN,
+                null,
+                "proxy evasion",
+                null,
+                "198.51.100.9",
+                true
+        ));
+
+        verify(punishmentRepository).voidSupersededBanByIp(
+                "198.51.100.9",
+                "Superseded by IB9001",
+                "IB9001"
+        );
+    }
+
+    @Test
+    void createMuteReapplicationSupersedesExistingMute() {
+        ProxyServer server = mock(ProxyServer.class);
+        when(server.getAllPlayers()).thenReturn(List.of());
+        PunishmentRepository punishmentRepository = mock(PunishmentRepository.class);
+        ActionIdService actionIdService = mock(ActionIdService.class);
+        when(actionIdService.nextUniqueId()).thenReturn("MU9001");
+
+        PunishmentService service = new PunishmentService(
+                server,
+                punishmentRepository,
+                mock(ModerationActionRepository.class),
+                actionIdService,
+                mock(MessageService.class),
+                mock(DiscordWebhookService.class)
+        );
+
+        service.create(new PunishmentRequest(
+                mock(CommandSource.class),
+                new TargetProfile("uuid-1", "TargetUser", "203.0.113.10", null),
+                PunishmentType.MUTE,
+                Duration.ofHours(1),
+                "chat abuse",
+                null,
+                null,
+                false
+        ));
+
+        verify(punishmentRepository).voidSupersededByTarget(
+                "uuid-1",
+                "TargetUser",
+                PunishmentType.MUTE,
+                "Superseded by MU9001",
+                "MU9001"
+        );
+    }
+
+    @Test
+    void createWarnReapplicationSupersedesExistingWarn() {
+        ProxyServer server = mock(ProxyServer.class);
+        when(server.getAllPlayers()).thenReturn(List.of());
+        PunishmentRepository punishmentRepository = mock(PunishmentRepository.class);
+        ActionIdService actionIdService = mock(ActionIdService.class);
+        when(actionIdService.nextUniqueId()).thenReturn("WR9001");
+
+        PunishmentService service = new PunishmentService(
+                server,
+                punishmentRepository,
+                mock(ModerationActionRepository.class),
+                actionIdService,
+                mock(MessageService.class),
+                mock(DiscordWebhookService.class)
+        );
+
+        service.create(new PunishmentRequest(
+                mock(CommandSource.class),
+                new TargetProfile("uuid-1", "TargetUser", "203.0.113.10", null),
+                PunishmentType.WARN,
+                null,
+                "chat warning",
+                null,
+                null,
+                false
+        ));
+
+        verify(punishmentRepository).voidSupersededByTarget(
+                "uuid-1",
+                "TargetUser",
+                PunishmentType.WARN,
+                "Superseded by WR9001",
+                "WR9001"
         );
     }
 
@@ -186,6 +334,91 @@ class PunishmentServiceWebhookTest {
         assertTrue(persistedEndTime != null);
         verify(messageService).banScreen("ABC123", "Rule violation", persistedEndTime);
         verify(onlineTarget).disconnect(banComponent);
+    }
+
+    @Test
+    void createAccountBanDoesNotDisconnectPlayersBySharedIp() {
+        ProxyServer server = mock(ProxyServer.class);
+        Player sharedIpPlayer = mock(Player.class);
+        when(server.getAllPlayers()).thenReturn(List.of(sharedIpPlayer));
+        when(sharedIpPlayer.getUsername()).thenReturn("SharedAlt");
+        when(sharedIpPlayer.getRemoteAddress()).thenReturn(new InetSocketAddress("203.0.113.10", 25565));
+        PunishmentRepository punishmentRepository = mock(PunishmentRepository.class);
+        ActionIdService actionIdService = mock(ActionIdService.class);
+        when(actionIdService.nextUniqueId()).thenReturn("BA3001");
+        MessageService messageService = mock(MessageService.class);
+        DiscordWebhookService discordWebhookService = mock(DiscordWebhookService.class);
+
+        PunishmentService service = new PunishmentService(
+                server,
+                punishmentRepository,
+                mock(ModerationActionRepository.class),
+                actionIdService,
+                messageService,
+                discordWebhookService
+        );
+
+        PunishmentResult result = service.create(new PunishmentRequest(
+                mock(CommandSource.class),
+                new TargetProfile("uuid-1", "TargetUser", "203.0.113.10", null),
+                PunishmentType.BAN,
+                null,
+                "Rule violation",
+                null,
+                null,
+                false
+        ));
+
+        assertEquals(0, result.disconnectedCount());
+        verify(sharedIpPlayer, never()).disconnect(any(Component.class));
+    }
+
+    @Test
+    void createIpBanSkipsMastersDuringImmediateEnforcement() {
+        ProxyServer server = mock(ProxyServer.class);
+        Player masterPlayer = mock(Player.class);
+        Player regularPlayer = mock(Player.class);
+        when(masterPlayer.getUsername()).thenReturn("MasterUser");
+        when(regularPlayer.getUsername()).thenReturn("RegularUser");
+        when(masterPlayer.getRemoteAddress()).thenReturn(new InetSocketAddress("198.51.100.9", 25565));
+        when(regularPlayer.getRemoteAddress()).thenReturn(new InetSocketAddress("198.51.100.9", 25565));
+        when(server.getAllPlayers()).thenReturn(List.of(masterPlayer, regularPlayer));
+
+        PunishmentRepository punishmentRepository = mock(PunishmentRepository.class);
+        ActionIdService actionIdService = mock(ActionIdService.class);
+        when(actionIdService.nextUniqueId()).thenReturn("IP4001");
+        MessageService messageService = mock(MessageService.class);
+        Component banComponent = Component.text("ip-ban-screen");
+        when(messageService.banScreen(eq("IP4001"), eq("proxy evasion"), any())).thenReturn(banComponent);
+        DiscordWebhookService discordWebhookService = mock(DiscordWebhookService.class);
+        MastersService mastersService = mock(MastersService.class);
+        when(mastersService.isMaster("MasterUser")).thenReturn(true);
+        when(mastersService.isMaster("RegularUser")).thenReturn(false);
+
+        PunishmentService service = new PunishmentService(
+                server,
+                punishmentRepository,
+                mock(ModerationActionRepository.class),
+                actionIdService,
+                messageService,
+                discordWebhookService,
+                mastersService
+        );
+
+        PunishmentResult result = service.create(new PunishmentRequest(
+                mock(CommandSource.class),
+                new TargetProfile(null, "TargetUser", "198.51.100.9", null),
+                PunishmentType.BAN,
+                null,
+                "proxy evasion",
+                null,
+                "198.51.100.9",
+                true
+        ));
+
+        assertEquals(1, result.disconnectedCount());
+        verify(masterPlayer, never()).disconnect(any(Component.class));
+        verify(regularPlayer).disconnect(banComponent);
     }
 
     @Test

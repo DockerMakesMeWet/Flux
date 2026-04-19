@@ -2,6 +2,7 @@ package org.owl.flux.command;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -266,7 +267,49 @@ class FluxCommandRegistrarWebhookTest {
 
         verify(punishmentService).voidAction("ABC123", "invalid action");
         verify(punishmentService).sendVoidWebhook("ABC123", source, true, "invalid action", record);
-        verify(punishmentService).auditReversalAction(ModerationActionType.VOID, "ABC123", "ABC123", source, "invalid action");
+        verify(punishmentService).auditReversalAction(ModerationActionType.VOID, "uuid-1", "ABC123", source, "invalid action");
+    }
+
+    @Test
+    void runVoidAllVoidsEveryActiveAccountPunishment() throws Exception {
+        CommandSource source = mock(CommandSource.class);
+        SimpleCommand.Invocation invocation = mock(SimpleCommand.Invocation.class);
+        when(invocation.source()).thenReturn(source);
+        when(invocation.arguments()).thenReturn(new String[]{"TargetUser", "bulk", "cleanup"});
+
+        TargetResolver targetResolver = mock(TargetResolver.class);
+        when(targetResolver.resolvePunishmentTarget("TargetUser"))
+                .thenReturn(Optional.of(new TargetProfile("uuid-1", "TargetUser", "203.0.113.10", null)));
+
+        PunishmentRecord first = punishment("BA1001", PunishmentType.BAN, "TargetUser", Map.of("ip_punishment", "false"));
+        PunishmentRecord second = punishment("MU1001", PunishmentType.MUTE, "TargetUser", Map.of("ip_punishment", "false"));
+        PunishmentRecord warn = punishment("WR1001", PunishmentType.WARN, "TargetUser", Map.of("ip_punishment", "false"));
+        PunishmentRepository punishmentRepository = mock(PunishmentRepository.class);
+        when(punishmentRepository.voidAllCandidatesByTarget("uuid-1", "TargetUser"))
+            .thenReturn(List.of(first, second, warn));
+
+        PunishmentService punishmentService = mock(PunishmentService.class);
+        when(punishmentService.voidAction("BA1001", "bulk cleanup")).thenReturn(true);
+        when(punishmentService.voidAction("MU1001", "bulk cleanup")).thenReturn(true);
+        when(punishmentService.voidAction("WR1001", "bulk cleanup")).thenReturn(true);
+        when(punishmentService.isIpPunishment(first)).thenReturn(false);
+        when(punishmentService.isIpPunishment(second)).thenReturn(false);
+        when(punishmentService.isIpPunishment(warn)).thenReturn(false);
+
+        FluxCommandRegistrar registrar = registrar(targetResolver, punishmentService, punishmentRepository);
+        invoke(registrar, "runVoidAll", invocation);
+
+        verify(punishmentRepository).voidAllCandidatesByTarget("uuid-1", "TargetUser");
+        verify(punishmentService).voidAction("BA1001", "bulk cleanup");
+        verify(punishmentService).voidAction("MU1001", "bulk cleanup");
+        verify(punishmentService).voidAction("WR1001", "bulk cleanup");
+        verify(punishmentService).auditReversalAction(ModerationActionType.VOID, "TargetUser", "BA1001", source, "bulk cleanup");
+        verify(punishmentService).auditReversalAction(ModerationActionType.VOID, "TargetUser", "MU1001", source, "bulk cleanup");
+        verify(punishmentService).auditReversalAction(ModerationActionType.VOID, "TargetUser", "WR1001", source, "bulk cleanup");
+        verify(punishmentService).sendVoidWebhook("BA1001", source, false, "bulk cleanup", first);
+        verify(punishmentService).sendVoidWebhook("MU1001", source, false, "bulk cleanup", second);
+        verify(punishmentService).sendVoidWebhook("WR1001", source, false, "bulk cleanup", warn);
+        verify(punishmentService, times(3)).notifyPlayerWarnRemoved(org.mockito.ArgumentMatchers.any(PunishmentRecord.class));
     }
 
     @Test

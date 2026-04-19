@@ -50,5 +50,11 @@ public final class MainConfig {
     public static final class MastersConfig {
         @Setting("refresh-on-reload")
         public boolean refreshOnReload = true;
+
+        @Setting("auto-update")
+        public boolean autoUpdate = false;
+
+        @Setting("auto-update-interval-minutes")
+        public long autoUpdateIntervalMinutes = 30L;
     }
 }

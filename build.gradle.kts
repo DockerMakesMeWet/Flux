@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "org.owl"
-version = "1.3.5"
+version = "1.5.0"
 
 repositories {
     mavenCentral()
@@ -25,6 +25,7 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind:2.18.2")
 
     compileOnly("net.luckperms:api:5.4")
+    testImplementation("net.luckperms:api:5.4")
 
     testImplementation(platform("org.junit:junit-bom:5.10.2"))
     testImplementation("org.junit.jupiter:junit-jupiter")

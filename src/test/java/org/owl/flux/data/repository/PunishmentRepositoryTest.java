@@ -16,6 +16,7 @@ import java.sql.Statement;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -281,6 +282,186 @@ class PunishmentRepositoryTest {
         assertEquals(List.of("AB0001"), active.stream().map(PunishmentRecord::id).toList());
     }
 
+        @Test
+        void findActivePunishmentDoesNotTreatAccountBanAsIpMatch() {
+        punishmentRepository.save(new PunishmentRecord(
+            "BA2101",
+            PunishmentType.BAN,
+            "target-uuid",
+            "198.51.100.61",
+            "TargetUser",
+            "00000000-0000-0000-0000-000000000000",
+            "account-only ban",
+            Instant.now(),
+            null,
+            true,
+            false,
+            false,
+            false,
+            Map.of("ip_punishment", "false")
+        ));
+
+        Optional<PunishmentRecord> resolved = punishmentRepository.findActivePunishment(
+            null,
+            null,
+            "198.51.100.61",
+            PunishmentType.BAN
+        );
+
+        assertTrue(resolved.isEmpty());
+        }
+
+        @Test
+        void findActivePunishmentFallsBackToIpBanWhenNewerAccountBanSharesIp() {
+        Instant now = Instant.now();
+        punishmentRepository.save(new PunishmentRecord(
+            "BA2102",
+            PunishmentType.BAN,
+            "target-uuid",
+            "198.51.100.62",
+            "TargetUser",
+            "00000000-0000-0000-0000-000000000000",
+            "newer account ban",
+            now,
+            null,
+            true,
+            false,
+            false,
+            false,
+            Map.of("ip_punishment", "false")
+        ));
+        punishmentRepository.save(new PunishmentRecord(
+            "IB2102",
+            PunishmentType.BAN,
+            null,
+            "198.51.100.62",
+            "198.51.100.62",
+            "00000000-0000-0000-0000-000000000000",
+            "older ip ban",
+            now.minusSeconds(60),
+            null,
+            true,
+            false,
+            false,
+            false,
+            Map.of("ip_punishment", "true")
+        ));
+
+        Optional<PunishmentRecord> resolved = punishmentRepository.findActivePunishment(
+            null,
+            null,
+            "198.51.100.62",
+            PunishmentType.BAN
+        );
+
+        assertEquals("IB2102", resolved.orElseThrow().id());
+        }
+
+        @Test
+        void voidSupersededByTargetVoidsMatchedActiveBanWithReason() {
+        punishmentRepository.save(new PunishmentRecord(
+            "BA1001",
+            PunishmentType.BAN,
+            "target-uuid",
+            "198.51.100.20",
+            "TargetUser",
+            "00000000-0000-0000-0000-000000000000",
+            "older ban",
+            Instant.now().minusSeconds(90),
+            null,
+            true,
+            false,
+            false,
+            false,
+            Map.of()
+        ));
+        punishmentRepository.save(new PunishmentRecord(
+            "BA1002",
+            PunishmentType.BAN,
+            "target-uuid",
+            "198.51.100.20",
+            "TargetUser",
+            "00000000-0000-0000-0000-000000000000",
+            "new ban",
+            Instant.now(),
+            null,
+            true,
+            false,
+            false,
+            false,
+            Map.of()
+        ));
+
+        boolean changed = punishmentRepository.voidSupersededByTarget(
+            "target-uuid",
+            "TargetUser",
+            PunishmentType.BAN,
+            "Superseded by BA1002",
+            "BA1002"
+        );
+
+        assertTrue(changed);
+        PunishmentRecord superseded = punishmentRepository.findById("BA1001").orElseThrow();
+        PunishmentRecord newest = punishmentRepository.findById("BA1002").orElseThrow();
+        assertFalse(superseded.active());
+        assertTrue(superseded.voided());
+        assertEquals("Superseded by BA1002", superseded.voidReason());
+        assertTrue(newest.active());
+        assertFalse(newest.voided());
+        }
+
+        @Test
+        void voidSupersededByTargetVoidsInactiveWarns() {
+        punishmentRepository.save(new PunishmentRecord(
+            "WR1001",
+            PunishmentType.WARN,
+            "target-uuid",
+            "198.51.100.21",
+            "TargetUser",
+            "00000000-0000-0000-0000-000000000000",
+            "older warn",
+            Instant.now().minusSeconds(90),
+            null,
+            false,
+            false,
+            false,
+            false,
+            Map.of()
+        ));
+        punishmentRepository.save(new PunishmentRecord(
+            "WR1002",
+            PunishmentType.WARN,
+            "target-uuid",
+            "198.51.100.21",
+            "TargetUser",
+            "00000000-0000-0000-0000-000000000000",
+            "new warn",
+            Instant.now(),
+            null,
+            false,
+            false,
+            false,
+            false,
+            Map.of()
+        ));
+
+        boolean changed = punishmentRepository.voidSupersededByTarget(
+            "target-uuid",
+            "TargetUser",
+            PunishmentType.WARN,
+            "Superseded by WR1002",
+            "WR1002"
+        );
+
+        assertTrue(changed);
+        PunishmentRecord superseded = punishmentRepository.findById("WR1001").orElseThrow();
+        PunishmentRecord newest = punishmentRepository.findById("WR1002").orElseThrow();
+        assertFalse(superseded.active());
+        assertTrue(superseded.voided());
+        assertEquals("Superseded by WR1002", superseded.voidReason());
+        assertFalse(newest.voided());
+        }
+
     @Test
     void activeByIpReturnsOnlyActivePunishments() {
         punishmentRepository.save(new PunishmentRecord(
@@ -319,6 +500,81 @@ class PunishmentRepositoryTest {
         List<PunishmentRecord> active = punishmentRepository.activeByIp("198.51.100.10");
         assertEquals(List.of("AB0010"), active.stream().map(PunishmentRecord::id).toList());
     }
+
+        @Test
+        void voidAllCandidatesIncludeActivePunishmentsAndNonVoidedWarns() {
+        Instant now = Instant.now();
+        punishmentRepository.save(new PunishmentRecord(
+            "VO1001",
+            PunishmentType.BAN,
+            "target-uuid",
+            "198.51.100.42",
+            "TargetUser",
+            "00000000-0000-0000-0000-000000000000",
+            "active ban",
+            now.minusSeconds(50),
+            null,
+            true,
+            false,
+            false,
+            false,
+            Map.of()
+        ));
+        punishmentRepository.save(new PunishmentRecord(
+            "VO1002",
+            PunishmentType.WARN,
+            "target-uuid",
+            "198.51.100.42",
+            "TargetUser",
+            "00000000-0000-0000-0000-000000000000",
+            "warn entry",
+            now.minusSeconds(40),
+            null,
+            false,
+            false,
+            false,
+            false,
+            Map.of()
+        ));
+        punishmentRepository.save(new PunishmentRecord(
+            "VO1003",
+            PunishmentType.BAN,
+            "target-uuid",
+            "198.51.100.42",
+            "TargetUser",
+            "00000000-0000-0000-0000-000000000000",
+            "inactive ban",
+            now.minusSeconds(30),
+            null,
+            false,
+            false,
+            false,
+            false,
+            Map.of()
+        ));
+        punishmentRepository.save(new PunishmentRecord(
+            "VO1004",
+            PunishmentType.WARN,
+            "target-uuid",
+            "198.51.100.42",
+            "TargetUser",
+            "00000000-0000-0000-0000-000000000000",
+            "voided warn",
+            now.minusSeconds(20),
+            null,
+            false,
+            true,
+            false,
+            false,
+            Map.of()
+        ));
+
+        List<PunishmentRecord> byTarget = punishmentRepository.voidAllCandidatesByTarget("target-uuid", "TargetUser");
+        List<PunishmentRecord> byIp = punishmentRepository.voidAllCandidatesByIp("198.51.100.42");
+
+        assertEquals(List.of("VO1002", "VO1001"), byTarget.stream().map(PunishmentRecord::id).toList());
+        assertEquals(List.of("VO1002", "VO1001"), byIp.stream().map(PunishmentRecord::id).toList());
+        }
 
     @Test
     void voidByIdStoresVoidReasonAndMarksPunishmentInactive() {

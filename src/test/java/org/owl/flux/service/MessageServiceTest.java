@@ -219,6 +219,7 @@ class MessageServiceTest {
         String secondRendered = plain(service.mutedMessage(mute, Instant.parse("2026-01-02T00:00:00Z")));
 
         assertTrue(firstRendered.startsWith("DuckyMC » "));
+        assertTrue(firstRendered.contains("Punishment ID: MU1001"));
         assertTrue(firstRendered.contains("Time left: 2d 4h 10m 30s"));
         assertTrue(firstRendered.contains("Expires at: 2026-01-03 04:10:30 UTC"));
         assertTrue(secondRendered.contains("Time left: 1d 4h 10m 30s"));
@@ -246,6 +247,7 @@ class MessageServiceTest {
 
         String rendered = plain(service.mutedMessage(mute, Instant.parse("2026-01-01T01:00:00Z")));
 
+        assertTrue(rendered.contains("Punishment ID: MU2001"));
         assertTrue(rendered.contains("Time left: Permanent"));
         assertTrue(rendered.contains("Expires at: Never"));
     }

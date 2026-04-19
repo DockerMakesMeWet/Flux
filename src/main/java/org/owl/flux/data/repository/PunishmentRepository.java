@@ -18,6 +18,7 @@ import org.owl.flux.data.model.PunishmentType;
 
 public final class PunishmentRepository {
     private static final int MAX_ID_SUGGESTION_LIMIT = 100;
+    private static final String IP_PUNISHMENT_METADATA_KEY = "ip_punishment";
 
     private final DataSource dataSource;
 
@@ -193,7 +194,6 @@ public final class PunishmentRepository {
                      OR (target_ip IS NOT NULL AND target_ip = ?)
                   )
                 ORDER BY start_time DESC
-                LIMIT 1
                 """;
 
         String normalizedUsername = targetUsername == null ? "" : targetUsername.trim();
@@ -205,10 +205,14 @@ public final class PunishmentRepository {
             statement.setString(3, normalizedUsername);
             statement.setString(4, targetIp);
             try (ResultSet resultSet = statement.executeQuery()) {
-                if (!resultSet.next()) {
-                    return Optional.empty();
+                while (resultSet.next()) {
+                    PunishmentRecord punishment = readPunishment(resultSet);
+                    if (matchesAccountTarget(punishment, targetUuid, normalizedUsername)
+                            || matchesIpTarget(punishment, targetIp)) {
+                        return Optional.of(punishment);
+                    }
                 }
-                return Optional.of(readPunishment(resultSet));
+                return Optional.empty();
             }
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to query active punishment.", exception);
@@ -368,14 +372,70 @@ public final class PunishmentRepository {
     }
 
     public boolean deactivateActiveByTarget(String targetUuid, String targetUsername, PunishmentType type) {
+        return deactivateActiveByTargetWithReason(targetUuid, targetUsername, type, null, null);
+    }
+
+    public boolean voidSupersededByTarget(
+            String targetUuid,
+            String targetUsername,
+            PunishmentType type,
+            String voidReason,
+            String excludedPunishmentId
+    ) {
         expireEndedPunishments();
         String normalizedUsername = targetUsername == null ? "" : targetUsername.trim();
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(
-                     "UPDATE punishments SET active = FALSE WHERE type = ? AND active = TRUE AND voided = FALSE AND (target_uuid = ? OR LOWER(target_username) = LOWER(?))")) {
-            statement.setString(1, type.name());
-            statement.setString(2, targetUuid);
-            statement.setString(3, normalizedUsername);
+                     """
+                             UPDATE punishments
+                             SET active = FALSE,
+                                 voided = TRUE,
+                                 void_reason = ?
+                             WHERE type = ?
+                               AND voided = FALSE
+                               AND (active = TRUE OR type = 'WARN')
+                               AND (target_uuid = ? OR LOWER(target_username) = LOWER(?))
+                               AND (? IS NULL OR id <> ?)
+                             """)) {
+            statement.setString(1, normalizeOptionalText(voidReason));
+            statement.setString(2, type.name());
+            statement.setString(3, targetUuid);
+            statement.setString(4, normalizedUsername);
+            statement.setString(5, normalizeOptionalText(excludedPunishmentId));
+            statement.setString(6, normalizeOptionalText(excludedPunishmentId));
+            return statement.executeUpdate() > 0;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Failed to void superseded punishments by target.", exception);
+        }
+    }
+
+    public boolean deactivateActiveByTargetWithReason(
+            String targetUuid,
+            String targetUsername,
+            PunishmentType type,
+            String reason,
+            String excludedPunishmentId
+    ) {
+        expireEndedPunishments();
+        String normalizedUsername = targetUsername == null ? "" : targetUsername.trim();
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                     """
+                             UPDATE punishments
+                             SET active = FALSE,
+                                 void_reason = COALESCE(?, void_reason)
+                             WHERE type = ?
+                               AND active = TRUE
+                               AND voided = FALSE
+                               AND (target_uuid = ? OR LOWER(target_username) = LOWER(?))
+                               AND (? IS NULL OR id <> ?)
+                             """)) {
+            statement.setString(1, normalizeOptionalText(reason));
+            statement.setString(2, type.name());
+            statement.setString(3, targetUuid);
+            statement.setString(4, normalizedUsername);
+            statement.setString(5, normalizeOptionalText(excludedPunishmentId));
+            statement.setString(6, normalizeOptionalText(excludedPunishmentId));
             return statement.executeUpdate() > 0;
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to deactivate active punishment by target UUID.", exception);
@@ -396,11 +456,52 @@ public final class PunishmentRepository {
     }
 
     public boolean deactivateActiveBanByIp(String targetIp) {
+        return deactivateActiveBanByIpWithReason(targetIp, null, null);
+    }
+
+    public boolean voidSupersededBanByIp(String targetIp, String voidReason, String excludedPunishmentId) {
         expireEndedPunishments();
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(
-                     "UPDATE punishments SET active = FALSE WHERE target_ip = ? AND type = 'BAN' AND active = TRUE AND voided = FALSE")) {
-            statement.setString(1, targetIp);
+                     """
+                             UPDATE punishments
+                             SET active = FALSE,
+                                 voided = TRUE,
+                                 void_reason = ?
+                             WHERE target_ip = ?
+                               AND type = 'BAN'
+                               AND active = TRUE
+                               AND voided = FALSE
+                               AND (? IS NULL OR id <> ?)
+                             """)) {
+            statement.setString(1, normalizeOptionalText(voidReason));
+            statement.setString(2, targetIp);
+            statement.setString(3, normalizeOptionalText(excludedPunishmentId));
+            statement.setString(4, normalizeOptionalText(excludedPunishmentId));
+            return statement.executeUpdate() > 0;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Failed to void superseded IP bans.", exception);
+        }
+    }
+
+    public boolean deactivateActiveBanByIpWithReason(String targetIp, String reason, String excludedPunishmentId) {
+        expireEndedPunishments();
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                     """
+                             UPDATE punishments
+                             SET active = FALSE,
+                                 void_reason = COALESCE(?, void_reason)
+                             WHERE target_ip = ?
+                               AND type = 'BAN'
+                               AND active = TRUE
+                               AND voided = FALSE
+                               AND (? IS NULL OR id <> ?)
+                             """)) {
+            statement.setString(1, normalizeOptionalText(reason));
+            statement.setString(2, targetIp);
+            statement.setString(3, normalizeOptionalText(excludedPunishmentId));
+            statement.setString(4, normalizeOptionalText(excludedPunishmentId));
             return statement.executeUpdate() > 0;
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to deactivate active IP bans.", exception);
@@ -475,6 +576,32 @@ public final class PunishmentRepository {
         }
     }
 
+    public List<PunishmentRecord> voidAllCandidatesByTarget(String targetUuid, String targetUsername) {
+        expireEndedPunishments();
+        String normalizedUsername = targetUsername == null ? "" : targetUsername.trim();
+        List<PunishmentRecord> list = new ArrayList<>();
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                     """
+                             SELECT * FROM punishments
+                             WHERE voided = FALSE
+                               AND (active = TRUE OR type = 'WARN')
+                               AND (target_uuid = ? OR LOWER(target_username) = LOWER(?))
+                             ORDER BY start_time DESC
+                             """)) {
+            statement.setString(1, targetUuid);
+            statement.setString(2, normalizedUsername);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    list.add(readPunishment(resultSet));
+                }
+            }
+            return list;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Failed to load void-all candidates by target.", exception);
+        }
+    }
+
     public List<PunishmentRecord> activeByIp(String ip) {
         expireEndedPunishments();
         List<PunishmentRecord> list = new ArrayList<>();
@@ -490,6 +617,30 @@ public final class PunishmentRepository {
             return list;
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to load active punishments by IP.", exception);
+        }
+    }
+
+    public List<PunishmentRecord> voidAllCandidatesByIp(String ip) {
+        expireEndedPunishments();
+        List<PunishmentRecord> list = new ArrayList<>();
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                     """
+                             SELECT * FROM punishments
+                             WHERE target_ip = ?
+                               AND voided = FALSE
+                               AND (active = TRUE OR type = 'WARN')
+                             ORDER BY start_time DESC
+                             """)) {
+            statement.setString(1, ip);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    list.add(readPunishment(resultSet));
+                }
+            }
+            return list;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Failed to load void-all candidates by IP.", exception);
         }
     }
 
@@ -518,6 +669,34 @@ public final class PunishmentRepository {
             return "";
         }
         return prefix.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private static boolean matchesAccountTarget(PunishmentRecord record, String targetUuid, String normalizedUsername) {
+        boolean uuidMatch = targetUuid != null
+                && !targetUuid.isBlank()
+                && targetUuid.equals(record.targetUuid());
+        boolean usernameMatch = normalizedUsername != null
+                && !normalizedUsername.isEmpty()
+                && record.targetUsername() != null
+                && record.targetUsername().equalsIgnoreCase(normalizedUsername);
+        return uuidMatch || usernameMatch;
+    }
+
+    private static boolean matchesIpTarget(PunishmentRecord record, String targetIp) {
+        if (targetIp == null || targetIp.isBlank()) {
+            return false;
+        }
+        if (record.targetIp() == null || !record.targetIp().equals(targetIp)) {
+            return false;
+        }
+        return isIpPunishment(record);
+    }
+
+    private static boolean isIpPunishment(PunishmentRecord record) {
+        if (record == null || record.metadata() == null) {
+            return false;
+        }
+        return Boolean.parseBoolean(record.metadata().getOrDefault(IP_PUNISHMENT_METADATA_KEY, "false"));
     }
 
     static String insertSqlForDatabaseProduct(String databaseProductName) {

@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Consumer;
+import org.owl.flux.data.model.ModerationActionRecord;
 import org.owl.flux.data.model.ModerationActionType;
 import org.owl.flux.data.model.PunishmentRecord;
 import org.owl.flux.data.model.PunishmentType;
@@ -30,6 +31,7 @@ public final class PunishmentService {
     private static final String TEMPLATE_METADATA_KEY = "template";
     private static final String TEMPLATE_STEP_METADATA_KEY = "template_step";
     private static final String TEMPLATE_STEP_NUMBER_METADATA_KEY = "template_step_number";
+    private static final String SUPERSEDED_REASON_TEMPLATE = "Superseded by %s";
     private static final int MAX_SAVE_ID_COLLISION_RETRIES = 8;
 
     private final ProxyServer server;
@@ -38,6 +40,7 @@ public final class PunishmentService {
     private final ActionIdService actionIdService;
     private final MessageService messageService;
     private final DiscordWebhookService discordWebhookService;
+    private final MastersService mastersService;
 
     public PunishmentService(
             ProxyServer server,
@@ -47,19 +50,42 @@ public final class PunishmentService {
             MessageService messageService,
             DiscordWebhookService discordWebhookService
     ) {
+        this(
+                server,
+                punishmentRepository,
+                moderationActionRepository,
+                actionIdService,
+                messageService,
+                discordWebhookService,
+                null
+        );
+    }
+
+    public PunishmentService(
+            ProxyServer server,
+            PunishmentRepository punishmentRepository,
+            ModerationActionRepository moderationActionRepository,
+            ActionIdService actionIdService,
+            MessageService messageService,
+            DiscordWebhookService discordWebhookService,
+            MastersService mastersService
+    ) {
         this.server = server;
         this.punishmentRepository = punishmentRepository;
         this.moderationActionRepository = moderationActionRepository;
         this.actionIdService = actionIdService;
         this.messageService = messageService;
         this.discordWebhookService = discordWebhookService;
+        this.mastersService = mastersService;
     }
 
     public PunishmentResult create(PunishmentRequest request) {
         Instant now = Instant.now();
         Instant end = request.duration() == null ? null : now.plus(request.duration());
         boolean active = request.type() == PunishmentType.BAN || request.type() == PunishmentType.MUTE;
-        String targetIp = request.ipOverride() != null ? request.ipOverride() : request.target().ip();
+        String targetIp = request.ipPunishment()
+            ? (request.ipOverride() != null ? request.ipOverride() : request.target().ip())
+            : (request.type() == PunishmentType.BAN ? null : request.target().ip());
         boolean issuedOffline = request.target().optionalOnlinePlayer().isEmpty();
 
         Map<String, String> metadata = new HashMap<>();
@@ -75,6 +101,7 @@ public final class PunishmentService {
         metadata.put(IP_PUNISHMENT_METADATA_KEY, Boolean.toString(request.ipPunishment()));
 
         PunishmentRecord record = persistWithRetryOnIdCollision(request, now, end, active, targetIp, issuedOffline, metadata);
+        retireSupersededActivePunishments(record, request);
 
         int disconnected = applyImmediateEnforcement(record, request.target());
         String actionKey = actionKey(record.type());
@@ -128,6 +155,56 @@ public final class PunishmentService {
         throw new IllegalStateException("Unable to persist punishment with a unique Flux action ID.", lastCollision);
     }
 
+    private void retireSupersededActivePunishments(PunishmentRecord newPunishment, PunishmentRequest request) {
+        if (newPunishment == null || request == null) {
+            return;
+        }
+
+        String supersededReason = SUPERSEDED_REASON_TEMPLATE.formatted(newPunishment.id());
+        if (newPunishment.type() == PunishmentType.BAN) {
+            if (request.ipPunishment()) {
+                if (newPunishment.targetIp() != null && !newPunishment.targetIp().isBlank()) {
+                    punishmentRepository.voidSupersededBanByIp(
+                            newPunishment.targetIp(),
+                            supersededReason,
+                            newPunishment.id()
+                    );
+                }
+                return;
+            }
+
+            punishmentRepository.voidSupersededByTarget(
+                    newPunishment.targetUuid(),
+                    newPunishment.targetUsername(),
+                    PunishmentType.BAN,
+                    supersededReason,
+                    newPunishment.id()
+            );
+            return;
+        }
+
+        if (newPunishment.type() == PunishmentType.MUTE) {
+            punishmentRepository.voidSupersededByTarget(
+                    newPunishment.targetUuid(),
+                    newPunishment.targetUsername(),
+                    PunishmentType.MUTE,
+                    supersededReason,
+                    newPunishment.id()
+            );
+            return;
+        }
+
+        if (newPunishment.type() == PunishmentType.WARN) {
+            punishmentRepository.voidSupersededByTarget(
+                    newPunishment.targetUuid(),
+                    newPunishment.targetUsername(),
+                    PunishmentType.WARN,
+                    supersededReason,
+                    newPunishment.id()
+            );
+        }
+    }
+
     public Optional<PunishmentRecord> activeMute(String targetUuid, String targetUsername) {
         return punishmentRepository.findActivePunishment(targetUuid, targetUsername, null, PunishmentType.MUTE);
     }
@@ -162,6 +239,10 @@ public final class PunishmentService {
 
     public Optional<PunishmentRecord> findById(String id) {
         return punishmentRepository.findById(id);
+    }
+
+    public List<ModerationActionRecord> historyActionsByTarget(String targetUuid, String targetUsername) {
+        return moderationActionRepository.historyByTarget(targetUuid, targetUsername);
     }
 
     public List<PunishmentRecord> pendingJoinNotices(String targetUuid, String targetUsername) {
@@ -345,21 +426,28 @@ public final class PunishmentService {
         }
 
         if (record.type() == PunishmentType.BAN) {
+            boolean ipPunishment = isIpPunishment(record);
             if (target.optionalOnlinePlayer().isPresent()) {
                 Player player = target.optionalOnlinePlayer().get();
+                if (ipPunishment && isMaster(player)) {
+                    return 0;
+                }
                 player.disconnect(messageService.banScreen(record.id(), record.reason(), record.endTime()));
                 return 1;
             }
 
+            if (!ipPunishment || record.targetIp() == null || record.targetIp().isBlank()) {
+                return 0;
+            }
+
             int disconnected = 0;
-            if (record.targetIp() != null) {
-                for (Player player : server.getAllPlayers()) {
-                    String ip = NetworkUtil.extractIp(player);
-                    if (record.targetIp().equals(ip)) {
-                        player.disconnect(messageService.banScreen(record.id(), record.reason(), record.endTime()));
-                        disconnected++;
-                    }
+            for (Player player : server.getAllPlayers()) {
+                String ip = NetworkUtil.extractIp(player);
+                if (!record.targetIp().equals(ip) || isMaster(player)) {
+                    continue;
                 }
+                player.disconnect(messageService.banScreen(record.id(), record.reason(), record.endTime()));
+                disconnected++;
             }
             return disconnected;
         }
@@ -504,6 +592,13 @@ public final class PunishmentService {
             return null;
         }
         return value;
+    }
+
+    private boolean isMaster(Player player) {
+        if (mastersService == null || player == null) {
+            return false;
+        }
+        return mastersService.isMaster(player.getUsername());
     }
 
     private void withTargetOnline(String targetUuid, Consumer<Player> callback) {

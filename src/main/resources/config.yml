@@ -64,3 +64,11 @@ masters:
   # Refreshes masters endpoint when /flux reload runs.
   # Possible values: true, false
   refresh-on-reload: true
+
+  # Automatically refreshes masters endpoint on a fixed schedule.
+  # Possible values: true, false
+  auto-update: false
+
+  # Minutes between automatic masters refreshes.
+  # Must be greater than 0 when auto-update is true.
+  auto-update-interval-minutes: 30

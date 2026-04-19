@@ -205,11 +205,14 @@ class FluxCommandRegistrarCompletionSourceTest {
         assertEquals(List.of("Alpha"), invokeSuggestionMethod(registrar, "suggestHistory", invocation(source, "al")));
         assertEquals(List.of("Alpha"), invokeSuggestionMethod(registrar, "suggestCheckPlayer", invocation(source, "al")));
         assertEquals(List.of("Alpha"), invokeSuggestionMethod(registrar, "suggestCheckIp", invocation(source, "al")));
+        assertEquals(List.of("Alpha"), invokeSuggestionMethod(registrar, "suggestCheckWarns", invocation(source, "al")));
         assertEquals(List.of("Alpha"), invokeSuggestionMethod(registrar, "suggestAlts", invocation(source, "al")));
         assertEquals(List.of("Alpha"), invokeSuggestionMethod(registrar, "suggestUnban", invocation(source, "al")));
         assertEquals(List.of("Alpha"), invokeSuggestionMethod(registrar, "suggestIpHistory", invocation(source, "al")));
 
+        assertEquals(List.of(), invokeSuggestionMethod(registrar, "suggestHistory", invocation(source, "203.0")));
         assertEquals(List.of(), invokeSuggestionMethod(registrar, "suggestCheckIp", invocation(source, "203.0")));
+        assertEquals(List.of(), invokeSuggestionMethod(registrar, "suggestCheckWarns", invocation(source, "203.0")));
         assertEquals(List.of(), invokeSuggestionMethod(registrar, "suggestUnban", invocation(source, "203.0")));
         assertEquals(List.of(), invokeSuggestionMethod(registrar, "suggestIpHistory", invocation(source, "203.0")));
     }
@@ -225,6 +228,7 @@ class FluxCommandRegistrarCompletionSourceTest {
         assertEquals(List.of("2"), invokeSuggestionMethod(registrar, "suggestHistory", invocation(source, "Alpha", "2")));
         assertEquals(List.of("3"), invokeSuggestionMethod(registrar, "suggestCheckPlayer", invocation(source, "Alpha", "3")));
         assertEquals(List.of("4"), invokeSuggestionMethod(registrar, "suggestCheckIp", invocation(source, "Alpha", "4")));
+        assertEquals(List.of("5"), invokeSuggestionMethod(registrar, "suggestCheckWarns", invocation(source, "Alpha", "5")));
         assertEquals(List.of("5"), invokeSuggestionMethod(registrar, "suggestAlts", invocation(source, "Alpha", "5")));
         assertEquals(List.of("10"), invokeSuggestionMethod(registrar, "suggestIpHistory", invocation(source, "Alpha", "10")));
     }

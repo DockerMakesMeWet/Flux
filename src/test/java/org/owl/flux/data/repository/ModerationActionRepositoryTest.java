@@ -63,4 +63,40 @@ class ModerationActionRepositoryTest {
             }
         }
     }
+
+            @Test
+            void historyByTargetReturnsUuidAndUsernameMatchesInDescendingOrder() {
+            repository.save(
+                ModerationActionType.UNBAN,
+                "TargetUser",
+                "AB1001",
+                "00000000-0000-0000-0000-000000000111",
+                "appeal accepted",
+                Instant.parse("2026-04-18T05:30:00Z")
+            );
+            repository.save(
+                ModerationActionType.VOID,
+                "uuid-1",
+                "AB1002",
+                "00000000-0000-0000-0000-000000000112",
+                "invalid evidence",
+                Instant.parse("2026-04-18T05:31:00Z")
+            );
+            repository.save(
+                ModerationActionType.UNMUTE,
+                "OtherUser",
+                "MU1001",
+                "00000000-0000-0000-0000-000000000113",
+                "other target",
+                Instant.parse("2026-04-18T05:32:00Z")
+            );
+
+            var history = repository.historyByTarget("uuid-1", "targetuser");
+
+            assertEquals(2, history.size());
+            assertEquals("AB1002", history.get(0).punishmentId());
+            assertEquals(ModerationActionType.VOID, history.get(0).actionType());
+            assertEquals("AB1001", history.get(1).punishmentId());
+            assertEquals(ModerationActionType.UNBAN, history.get(1).actionType());
+            }
 }

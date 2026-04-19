@@ -11,7 +11,7 @@
 #   <server> <discord> <id> <type> <target> <executor> <reason> <voided> <void_reason> <void_note> <ip> <seen>
 #   <version> <player> <username> <target_id> <count> <label> <verb> <id_warning>
 #   <expires_at> <time_left>
-#   <time_left> <expires_at> <template_step>
+#   <time_left> <expires_at> <template_step> <command_type> <template_type>
 # If a placeholder is not used by a key, it is ignored.
 
 # Prefix added before most command/staff feedback messages.
@@ -93,18 +93,21 @@ commands:
   usage-unban: "/unban <user/ip/id> <reason>"
   usage-unmute: "/unmute <user/id> <reason>"
   usage-void: "/void <id> <reason>"
-  usage-history: "/history <user> [page]"
+  usage-voidall: "/voidall <user/ip> <reason>"
+  usage-history: "/history <user/ip> [page]"
   usage-alts: "/alts <user> [page]"
   usage-iphistory: "/iphistory <ip/user> [page]"
   usage-check: "/check <id>"
   usage-checkplayer: "/checkplayer <user> [page]"
   usage-checkip: "/checkip <ip/user> [page]"
+  usage-checkwarns: "/checkwarns <user/ip> [page]"
   usage-flux: "/flux [reload|ver|info|version]"
 
   # Generic command parsing errors.
-  # Placeholders: <page>
+  # Placeholders: <page> <command_type> <template_type>
   invalid-duration: "<red>Invalid duration format.</red>"
   template-not-found: "<red>Template not found.</red>"
+  template-type-mismatch: "<red>This command only accepts <command_type> templates. You used a <template_type> template.</red>"
   invalid-page: "<red>Invalid page <white><page></white>. Use a positive number.</red>"
 
   # Confirmation for creating an action.
@@ -123,6 +126,10 @@ commands:
   # Confirmation for voiding an action.
   # Placeholders: <id>
   void-updated: "<yellow>Voided punishment/action <white><id></white>.</yellow>"
+
+  # Confirmation for bulk voiding active punishments.
+  # Placeholders: <target> <count>
+  voidall-updated: "<yellow>Voided <white><count></white> active punishment(s) for <white><target></white>.</yellow>"
 
   # Shown when a punishment/action cannot be found.
   # Placeholders: none
@@ -149,9 +156,9 @@ commands:
   check-detail-meta: "<gray>IP Punishment:</gray> <white><ip_punishment></white> <gray>| Template:</gray> <white><template></white> <gray>| Template Step:</gray> <white><template_step></white>"
 
   # Summary list entries used by /checkplayer and /checkip.
-  # Placeholders: <id> <type> <reason> <expires> <target> <voided> <void_reason> <void_note>
-  check-summary-entry: "<gray>-</gray> <white><id></white> <yellow><type></yellow> <gray><reason></gray> <dark_gray>(expires=<expires><void_note>)</dark_gray>"
-  check-summary-entry-with-target: "<gray>-</gray> <white><id></white> <yellow><type></yellow> <gray><reason></gray> <dark_gray>(target=<target>, expires=<expires><void_note>)</dark_gray>"
+  # Placeholders: <id> <type> <reason> <target>
+  check-summary-entry: "<gray>-</gray> <white><id></white> <yellow><type></yellow> <gray><reason></gray>"
+  check-summary-entry-with-target: "<gray>-</gray> <white><id></white> <yellow><type></yellow> <gray><reason></gray> <dark_gray>(target=<target>)</dark_gray>"
 
   # Header for /checkplayer output.
   # Placeholders: <target>
@@ -164,6 +171,10 @@ commands:
   # Header for /checkip output.
   # Placeholders: <target>
   checkip-header: "<gray>===</gray> <yellow>Checking active punishments for IP <white><target></white></yellow> <gray>===</gray>"
+
+  # Header for /checkwarns output.
+  # Placeholders: <target>
+  checkwarns-header: "<gray>===</gray> <yellow>Checking warnings for <white><target></white></yellow> <gray>===</gray>"
 
   # Footer for /checkip output.
   # Placeholders: <target> <count>
@@ -178,12 +189,12 @@ commands:
   history-footer: "<gray>===</gray> <yellow>End history of <white><target></white> (<count>)</yellow> <gray>===</gray>"
 
   # Entry line for history output.
-  # Placeholders: <id> <type> <reason> <voided> <void_reason> <void_note>
-  history-entry: "<gray>•</gray> <white><id></white> <yellow><type></yellow> <gray>-</gray> <white><reason></white> <dark_gray>(voided=<voided><void_note>)</dark_gray>"
+  # Placeholders: <id> <type> <reason>
+  history-entry: "<gray>•</gray> <white><id></white> <yellow><type></yellow> <gray>-</gray> <white><reason></white>"
 
   # Hover details for history entries.
-  # Placeholders: <id> <type> <reason> <voided> <void_reason>
-  history-entry-hover: "<yellow><bold>History Entry</bold></yellow><newline><gray>ID:</gray> <white><id></white><newline><gray>Type:</gray> <white><type></white><newline><gray>Reason:</gray> <white><reason></white><newline><gray>Voided:</gray> <white><voided></white><newline><gray>Void Reason:</gray> <white><void_reason></white><newline><gold>Click to suggest /check <id></gold>"
+  # Placeholders: <id> <type> <reason>
+  history-entry-hover: "<yellow><bold>History Entry</bold></yellow><newline><gray>ID:</gray> <white><id></white><newline><gray>Type:</gray> <white><type></white><newline><gray>Reason:</gray> <white><reason></white><newline><gold>Click to suggest /check <id></gold>"
 
   # Header for alternate-account output.
   # Placeholders: <ip>
@@ -264,5 +275,5 @@ screens:
   kick-screen: "<gradient:#f7d74b:#ffd86b><bold><server></bold></gradient><newline><yellow>You were removed from this network.</yellow><newline><gray>Reason:</gray> <white><reason></white><newline><gray>ID:</gray> <white><id></white><newline><id_warning><newline><gray>Need help?</gray> <yellow><discord></yellow>"
 
   # Chat feedback when muted players try to speak.
-  # Placeholders: <discord> <time_left> <expires_at>
-  muted-message: "<yellow>You are currently muted and cannot chat right now.</yellow><newline><gray>Time left:</gray> <white><time_left></white><newline><gray>Expires at:</gray> <white><expires_at></white><newline><gray>If this seems wrong, visit <white><discord></white>.</gray>"
+  # Placeholders: <discord> <id> <time_left> <expires_at>
+  muted-message: "<yellow>You are currently muted and cannot chat right now.</yellow><newline><gray>Punishment ID:</gray> <white><id></white><newline><gray>Time left:</gray> <white><time_left></white><newline><gray>Expires at:</gray> <white><expires_at></white><newline><gray>If this seems wrong, visit <white><discord></white>.</gray>"

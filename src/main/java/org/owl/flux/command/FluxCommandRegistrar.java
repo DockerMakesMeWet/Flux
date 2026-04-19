@@ -10,6 +10,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -18,6 +19,7 @@ import java.util.Optional;
 import org.owl.flux.config.model.TemplatesConfig;
 import org.owl.flux.data.model.AccountVisit;
 import org.owl.flux.data.model.IpVisit;
+import org.owl.flux.data.model.ModerationActionRecord;
 import org.owl.flux.data.model.ModerationActionType;
 import org.owl.flux.data.model.PunishmentRecord;
 import org.owl.flux.data.model.PunishmentType;
@@ -111,9 +113,11 @@ public final class FluxCommandRegistrar {
         register("unban", "flux.command.unban", this::runUnban, this::suggestUnban, "pardon");
         register("unmute", "flux.command.unmute", this::runUnmute, this::suggestUnmute);
         register("void", "flux.command.void", this::runVoid, this::suggestVoid);
+        register("voidall", "flux.command.voidall", this::runVoidAll, this::suggestVoidAll);
         register("check", "flux.command.check", this::runCheck, this::suggestCheck);
         register("checkplayer", "flux.command.checkplayer", this::runCheckPlayer, this::suggestCheckPlayer);
         register("checkip", "flux.command.checkip", this::runCheckIp, this::suggestCheckIp);
+        register("checkwarns", "flux.command.checkwarns", this::runCheckWarns, this::suggestCheckWarns);
         register("history", "flux.command.history", this::runHistory, this::suggestHistory);
         register("alts", "flux.command.alts", this::runAlts, this::suggestAlts, "dupeip");
         register("iphistory", "flux.command.iphistory", this::runIpHistory, this::suggestIpHistory);
@@ -234,7 +238,14 @@ public final class FluxCommandRegistrar {
         if (reason.startsWith("#")) {
             try {
                 TemplateResolution resolution = templateService.resolve(invocation.source(), reason, target.uuid());
-                appliedType = resolution.type();
+                if (resolution.type() != baseType) {
+                    messageService.sendTemplateTypeMismatch(
+                            invocation.source(),
+                            baseType.name(),
+                            resolution.type().name()
+                    );
+                    return;
+                }
                 duration = resolution.optionalDuration().orElse(null);
                 reason = resolution.reason();
                 templateName = resolution.templateName();
@@ -344,6 +355,7 @@ public final class FluxCommandRegistrar {
         }
         boolean changed = false;
         String targetDisplay = input;
+        String auditTargetReference = input;
         boolean ipPunishment = false;
         String relatedPunishmentId = null;
         if (NetworkUtil.isIpLiteral(input)) {
@@ -351,6 +363,7 @@ public final class FluxCommandRegistrar {
             changed = punishmentService.unbanByIp(input);
             ipPunishment = activeBan.map(punishmentService::isIpPunishment).orElse(false);
             relatedPunishmentId = activeBan.map(PunishmentRecord::id).orElse(null);
+            auditTargetReference = input;
         } else {
             boolean resolvedById = false;
             if (looksLikePunishmentIdToken(input)) {
@@ -360,6 +373,7 @@ public final class FluxCommandRegistrar {
                     PunishmentRecord record = recordById.get();
                     changed = punishmentService.unbanById(id);
                     targetDisplay = displayTarget(record, id);
+                    auditTargetReference = auditTargetReference(record, id);
                     ipPunishment = punishmentService.isIpPunishment(record);
                     relatedPunishmentId = id;
                     resolvedById = true;
@@ -377,6 +391,7 @@ public final class FluxCommandRegistrar {
                 Optional<PunishmentRecord> activeBan = punishmentService.activeBan(target.uuid(), target.username(), target.ip());
                 changed = punishmentService.unbanByTarget(target.uuid(), target.username());
                 targetDisplay = target.username();
+                auditTargetReference = target.username();
                 ipPunishment = activeBan.map(punishmentService::isIpPunishment).orElse(false);
                 relatedPunishmentId = activeBan.map(PunishmentRecord::id).orElse(null);
             }
@@ -388,7 +403,7 @@ public final class FluxCommandRegistrar {
         }
         punishmentService.auditReversalAction(
                 ModerationActionType.UNBAN,
-                targetDisplay,
+            auditTargetReference,
                 relatedPunishmentId,
                 invocation.source(),
                 reason
@@ -412,6 +427,7 @@ public final class FluxCommandRegistrar {
         }
         boolean changed = false;
         String targetDisplay = input;
+        String auditTargetReference = input;
         Optional<PunishmentRecord> unmutedRecord = Optional.empty();
         String relatedPunishmentId = null;
 
@@ -423,6 +439,7 @@ public final class FluxCommandRegistrar {
                 PunishmentRecord record = recordById.get();
                 changed = punishmentService.unmuteById(id);
                 targetDisplay = displayTarget(record, id);
+                auditTargetReference = auditTargetReference(record, id);
                 unmutedRecord = Optional.of(record);
                 relatedPunishmentId = id;
                 resolvedById = true;
@@ -444,6 +461,7 @@ public final class FluxCommandRegistrar {
             unmutedRecord = activeMute == null ? Optional.empty() : activeMute;
             changed = punishmentService.unmuteByTarget(target.uuid(), target.username());
             targetDisplay = target.username();
+            auditTargetReference = target.username();
             relatedPunishmentId = activeMute.map(PunishmentRecord::id).orElse(null);
         }
 
@@ -453,7 +471,7 @@ public final class FluxCommandRegistrar {
         }
         punishmentService.auditReversalAction(
                 ModerationActionType.UNMUTE,
-                targetDisplay,
+            auditTargetReference,
                 relatedPunishmentId,
                 invocation.source(),
                 reason
@@ -487,9 +505,10 @@ public final class FluxCommandRegistrar {
         }
 
         String executorName = invocation.source() instanceof Player player ? player.getUsername() : "Console";
+        String auditTargetReference = auditTargetReference(record.get(), targetId);
         punishmentService.auditReversalAction(
             ModerationActionType.VOID,
-            targetId,
+            auditTargetReference,
             targetId,
             invocation.source(),
             reason
@@ -500,6 +519,81 @@ public final class FluxCommandRegistrar {
         messageService.broadcastVoid(targetId, targetId, executorName, reason);
     }
 
+    private void runVoidAll(SimpleCommand.Invocation invocation) {
+        String[] args = invocation.arguments();
+        if (args.length < 2) {
+            messageService.sendUsage(invocation.source(), messageService.usageVoidAll());
+            return;
+        }
+
+        String targetInput = normalizeToken(args[0]);
+        String reason = normalizeToken(String.join(" ", Arrays.copyOfRange(args, 1, args.length)));
+        if (targetInput.isBlank() || reason.isBlank()) {
+            messageService.sendUsage(invocation.source(), messageService.usageVoidAll());
+            return;
+        }
+
+        List<PunishmentRecord> candidates;
+        String targetDisplay;
+        String auditFallback;
+        if (NetworkUtil.isIpLiteral(targetInput)) {
+            candidates = punishmentRepository.voidAllCandidatesByIp(targetInput);
+            targetDisplay = targetInput;
+            auditFallback = targetInput;
+        } else {
+            Optional<TargetProfile> targetMaybe = targetResolver.resolvePunishmentTarget(targetInput);
+            if (targetMaybe.isEmpty()) {
+                messageService.sendPlayerNotFound(invocation.source(), targetInput);
+                return;
+            }
+            TargetProfile target = targetMaybe.get();
+            candidates = punishmentRepository.voidAllCandidatesByTarget(target.uuid(), target.username());
+            targetDisplay = target.username();
+            auditFallback = target.username();
+        }
+
+        if (candidates == null) {
+            candidates = List.of();
+        }
+
+        if (candidates.isEmpty()) {
+            messageService.sendActionNotFound(invocation.source());
+            return;
+        }
+
+        String executorName = invocation.source() instanceof Player player ? player.getUsername() : "Console";
+        int voidedCount = 0;
+        for (PunishmentRecord record : candidates) {
+            if (!punishmentService.voidAction(record.id(), reason)) {
+                continue;
+            }
+
+            punishmentService.auditReversalAction(
+                    ModerationActionType.VOID,
+                    auditTargetReference(record, auditFallback),
+                    record.id(),
+                    invocation.source(),
+                    reason
+            );
+            punishmentService.sendVoidWebhook(
+                    record.id(),
+                    invocation.source(),
+                    punishmentService.isIpPunishment(record),
+                    reason,
+                    record
+            );
+            punishmentService.notifyPlayerWarnRemoved(record);
+            messageService.broadcastVoid(record.id(), record.id(), executorName, reason);
+            voidedCount++;
+        }
+
+        if (voidedCount <= 0) {
+            messageService.sendActionNotFound(invocation.source());
+            return;
+        }
+        messageService.sendVoidAllUpdated(invocation.source(), targetDisplay, voidedCount);
+    }
+
     private List<String> suggestVoid(SimpleCommand.Invocation invocation) {
         if (invocation.arguments().length > 2) {
             return List.of();
@@ -508,6 +602,16 @@ public final class FluxCommandRegistrar {
             return List.of();
         }
         return punishmentRepository.findRecentIdsByPrefix(currentToken(invocation), DEFAULT_COMPLETION_LIMIT);
+    }
+
+    private List<String> suggestVoidAll(SimpleCommand.Invocation invocation) {
+        if (invocation.arguments().length > 2) {
+            return List.of();
+        }
+        if (invocation.arguments().length == 2) {
+            return List.of();
+        }
+        return argumentPositionCompletionFramework(invocation, usernameOrIpTargetCompletionSource(0));
     }
 
     private void runCheck(SimpleCommand.Invocation invocation) {
@@ -621,6 +725,71 @@ public final class FluxCommandRegistrar {
         );
     }
 
+    private void runCheckWarns(SimpleCommand.Invocation invocation) {
+        String[] args = invocation.arguments();
+        if (args.length < 1 || args.length > 2) {
+            messageService.sendUsage(invocation.source(), messageService.usageCheckWarns());
+            return;
+        }
+        int requestedPage = parseRequestedPage(invocation, args, 1);
+        if (requestedPage < 0) {
+            return;
+        }
+
+        String input = normalizeToken(args[0]);
+        List<PunishmentRecord> warnCandidates;
+        String targetDisplay;
+        String commandTarget;
+        boolean includeTargetInEntry = false;
+        if (NetworkUtil.isIpLiteral(input)) {
+            warnCandidates = punishmentRepository.historyByIp(input);
+            targetDisplay = input;
+            commandTarget = input;
+            includeTargetInEntry = true;
+        } else {
+            Optional<TargetProfile> targetMaybe = targetResolver.resolvePunishmentTarget(input);
+            if (targetMaybe.isEmpty()) {
+                messageService.sendPlayerNotFound(invocation.source(), input);
+                return;
+            }
+            TargetProfile target = targetMaybe.get();
+            warnCandidates = punishmentRepository.historyByTarget(target.uuid(), target.username());
+            targetDisplay = target.username();
+            commandTarget = target.username();
+        }
+
+        if (warnCandidates == null) {
+            warnCandidates = List.of();
+        }
+        List<PunishmentRecord> warns = warnCandidates.stream()
+                .filter(punishment -> punishment.type() == PunishmentType.WARN)
+                .filter(punishment -> !punishment.voided())
+                .toList();
+
+        PageWindow window = paginationWindow(warns.size(), requestedPage);
+        messageService.sendCheckWarnsHeader(invocation.source(), targetDisplay);
+        if (warns.isEmpty()) {
+            messageService.sendActionNotFound(invocation.source());
+            messageService.sendPaginationFooter(
+                    invocation.source(),
+                    window.currentPage(),
+                    window.totalPages(),
+                    commandBase("checkwarns", commandTarget)
+            );
+            return;
+        }
+
+        for (PunishmentRecord warn : warns.subList(window.fromIndex(), window.toIndex())) {
+            sendPunishmentSummary(invocation.source(), warn, includeTargetInEntry);
+        }
+        messageService.sendPaginationFooter(
+                invocation.source(),
+                window.currentPage(),
+                window.totalPages(),
+                commandBase("checkwarns", commandTarget)
+        );
+    }
+
     private List<String> suggestCheck(SimpleCommand.Invocation invocation) {
         if (invocation.arguments().length > 1) {
             return List.of();
@@ -639,40 +808,72 @@ public final class FluxCommandRegistrar {
             return;
         }
 
-        Optional<TargetProfile> targetMaybe = targetResolver.resolvePunishmentTarget(args[0]);
-        if (targetMaybe.isEmpty()) {
-            messageService.sendPlayerNotFound(invocation.source(), args[0]);
-            return;
+        String input = normalizeToken(args[0]);
+        List<PunishmentRecord> punishmentHistory;
+        List<ModerationActionRecord> moderationHistory;
+        String targetLabel;
+        String commandTarget;
+        if (NetworkUtil.isIpLiteral(input)) {
+            punishmentHistory = punishmentRepository.historyByIp(input);
+            moderationHistory = punishmentService.historyActionsByTarget(null, input);
+            targetLabel = input;
+            commandTarget = input;
+        } else {
+            Optional<TargetProfile> targetMaybe = targetResolver.resolvePunishmentTarget(input);
+            if (targetMaybe.isEmpty()) {
+                messageService.sendPlayerNotFound(invocation.source(), args[0]);
+                return;
+            }
+            TargetProfile target = targetMaybe.get();
+            punishmentHistory = punishmentRepository.historyByTarget(target.uuid(), target.username());
+            moderationHistory = punishmentService.historyActionsByTarget(target.uuid(), target.username());
+            targetLabel = target.username();
+            commandTarget = target.username();
         }
-        TargetProfile target = targetMaybe.get();
-        List<PunishmentRecord> history = punishmentRepository.historyByTarget(target.uuid(), target.username());
-        PageWindow window = paginationWindow(history.size(), requestedPage);
-        messageService.sendHistoryHeader(invocation.source(), target.username());
-        if (history.isEmpty()) {
+
+        if (punishmentHistory == null) {
+            punishmentHistory = List.of();
+        }
+        if (moderationHistory == null) {
+            moderationHistory = List.of();
+        }
+        List<HistoryEntry> mergedHistory = new ArrayList<>(punishmentHistory.size() + moderationHistory.size());
+        for (PunishmentRecord punishment : punishmentHistory) {
+            mergedHistory.add(HistoryEntry.fromPunishment(punishment));
+        }
+        for (ModerationActionRecord action : moderationHistory) {
+            mergedHistory.add(HistoryEntry.fromModerationAction(action));
+        }
+        mergedHistory.sort(Comparator
+                .comparing(HistoryEntry::when, Comparator.nullsLast(Comparator.naturalOrder()))
+                .reversed()
+                .thenComparing(HistoryEntry::id, Comparator.reverseOrder()));
+
+        PageWindow window = paginationWindow(mergedHistory.size(), requestedPage);
+        messageService.sendHistoryHeader(invocation.source(), targetLabel);
+        if (mergedHistory.isEmpty()) {
             messageService.sendActionNotFound(invocation.source());
             messageService.sendPaginationFooter(
                     invocation.source(),
                     window.currentPage(),
                     window.totalPages(),
-                    commandBase("history", target.username())
+                commandBase("history", commandTarget)
             );
             return;
         }
-        for (PunishmentRecord punishment : history.subList(window.fromIndex(), window.toIndex())) {
+        for (HistoryEntry historyEntry : mergedHistory.subList(window.fromIndex(), window.toIndex())) {
             messageService.sendHistoryEntry(
                     invocation.source(),
-                    punishment.id(),
-                    punishment.type().name(),
-                    punishment.reason(),
-                    Boolean.toString(punishment.voided()),
-                    punishment.voidReason()
+                    historyEntry.id(),
+                    historyEntry.type(),
+                    historyEntry.reason()
             );
         }
         messageService.sendPaginationFooter(
                 invocation.source(),
                 window.currentPage(),
                 window.totalPages(),
-                commandBase("history", target.username())
+            commandBase("history", commandTarget)
         );
     }
 
@@ -888,7 +1089,7 @@ public final class FluxCommandRegistrar {
     private List<String> suggestHistory(SimpleCommand.Invocation invocation) {
         return argumentPositionCompletionFramework(
             invocation,
-            onlineUsernameCompletionSource(0),
+            usernameOrIpTargetCompletionSource(0),
             pageNumberCompletionSource(1)
         );
     }
@@ -902,6 +1103,14 @@ public final class FluxCommandRegistrar {
     }
 
     private List<String> suggestCheckIp(SimpleCommand.Invocation invocation) {
+        return argumentPositionCompletionFramework(
+                invocation,
+                usernameOrIpTargetCompletionSource(0),
+                pageNumberCompletionSource(1)
+        );
+    }
+
+    private List<String> suggestCheckWarns(SimpleCommand.Invocation invocation) {
         return argumentPositionCompletionFramework(
                 invocation,
                 usernameOrIpTargetCompletionSource(0),
@@ -1267,6 +1476,25 @@ public final class FluxCommandRegistrar {
         return fallback;
     }
 
+    private static String auditTargetReference(PunishmentRecord record, String fallback) {
+        if (record == null) {
+            return fallback;
+        }
+        String username = normalizeToken(record.targetUsername());
+        if (!username.isEmpty()) {
+            return username;
+        }
+        String uuid = normalizeToken(record.targetUuid());
+        if (!uuid.isEmpty()) {
+            return uuid;
+        }
+        String ip = normalizeToken(record.targetIp());
+        if (!ip.isEmpty()) {
+            return ip;
+        }
+        return fallback;
+    }
+
     private static ParseResult parsePunishmentPayload(String[] payload, boolean allowDuration) {
         if (payload.length == 0) {
             return new ParseResult(null, "");
@@ -1368,16 +1596,12 @@ public final class FluxCommandRegistrar {
     }
 
     private void sendPunishmentSummary(CommandSource source, PunishmentRecord punishment, boolean includeTarget) {
-        String expires = PunishmentTimeFormatter.formatExpiry(punishment.endTime());
         if (!includeTarget) {
             messageService.sendCheckSummaryEntry(
                     source,
                     punishment.id(),
                     punishment.type().name(),
-                    punishment.reason(),
-                    expires,
-                    Boolean.toString(punishment.voided()),
-                    punishment.voidReason()
+                    punishment.reason()
             );
             return;
         }
@@ -1391,10 +1615,7 @@ public final class FluxCommandRegistrar {
                 punishment.id(),
                 punishment.type().name(),
                 punishment.reason(),
-                target,
-                expires,
-                Boolean.toString(punishment.voided()),
-                punishment.voidReason()
+                target
         );
     }
 
@@ -1434,6 +1655,39 @@ public final class FluxCommandRegistrar {
             Duration duration,
             String reason
     ) {
+    }
+
+    private record HistoryEntry(
+            String id,
+            String type,
+            String reason,
+            Instant when
+    ) {
+        private static HistoryEntry fromPunishment(PunishmentRecord punishment) {
+            return new HistoryEntry(
+                    fallbackIfBlank(normalizeToken(punishment.id()), "N/A"),
+                    fallbackIfBlank(normalizeToken(punishment.type() == null ? null : punishment.type().name()), "N/A"),
+                    fallbackIfBlank(normalizeToken(punishment.reason()), "N/A"),
+                    punishment.startTime()
+            );
+        }
+
+        private static HistoryEntry fromModerationAction(ModerationActionRecord action) {
+            String linkedId = normalizeToken(action.punishmentId());
+            if (linkedId.isEmpty()) {
+                linkedId = "MA" + action.id();
+            }
+            return new HistoryEntry(
+                    linkedId,
+                    fallbackIfBlank(normalizeToken(action.actionType() == null ? null : action.actionType().name()), "N/A"),
+                    fallbackIfBlank(normalizeToken(action.reason()), "N/A"),
+                    action.createdAt()
+            );
+        }
+
+        private static String fallbackIfBlank(String value, String fallback) {
+            return value == null || value.isBlank() ? fallback : value;
+        }
     }
 
     private record PageWindow(

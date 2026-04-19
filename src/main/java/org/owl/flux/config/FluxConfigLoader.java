@@ -66,6 +66,13 @@ public final class FluxConfigLoader {
             }
         }
 
+        MainConfig.MastersConfig masters = config.masters;
+        if (masters != null && masters.autoUpdate && masters.autoUpdateIntervalMinutes <= 0) {
+            throw new ConfigValidationException(
+                    "config.yml masters.auto-update-interval-minutes must be greater than 0 when masters.auto-update is true."
+            );
+        }
+
     }
 
     private static void validateMessages(MessagesConfig messages) {

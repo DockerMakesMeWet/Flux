@@ -86,6 +86,37 @@ class FluxConfigLoaderTest {
     }
 
     @Test
+    void rejectsMastersAutoUpdateWithNonPositiveInterval() throws IOException {
+        Path dir = Files.createTempDirectory("flux-config-test-masters-interval");
+        writeBaseFiles(dir);
+        writeValidDiscordConfig(dir);
+        Files.writeString(dir.resolve("config.yml"), """
+                database:
+                  provider: "postgresql"
+                  postgresql:
+                    host: "127.0.0.1"
+                    port: 5432
+                    database: "flux"
+                    username: "flux"
+                    password: "flux"
+                    server-version: "17"
+                    pool:
+                      maximum-pool-size: 10
+                      minimum-idle: 2
+                      connection-timeout-ms: 30000
+                  h2:
+                    file: "flux-data"
+                masters:
+                  refresh-on-reload: true
+                  auto-update: true
+                  auto-update-interval-minutes: 0
+                """);
+
+        FluxConfigLoader loader = new FluxConfigLoader(dir);
+        assertThrows(ConfigValidationException.class, loader::load);
+    }
+
+    @Test
     void loadsDefaultValuesForNewMessageKeysWhenMissingFromLegacyFile() throws IOException {
         Path dir = Files.createTempDirectory("flux-config-test-message-defaults");
         writeBaseFiles(dir);
@@ -126,6 +157,10 @@ class FluxConfigLoaderTest {
         assertEquals(
           "<yellow><bold>Moderation Action</bold></yellow><newline><gray>ID:</gray> <white><id></white><newline><gray>Type:</gray> <white><type></white><newline><gray>Target:</gray> <white><target></white><newline><gray>Executor:</gray> <white><executor></white><newline><gray>Reason:</gray> <white><reason></white><newline><gold>Click to suggest /check <id></gold>",
                 bundle.messages().staff.actionBroadcastHover
+        );
+        assertEquals(
+          "<red>This command only accepts <command_type> templates. You used a <template_type> template.</red>",
+          bundle.messages().commands.templateTypeMismatch
         );
     }
 
@@ -188,6 +223,8 @@ class FluxConfigLoaderTest {
                     file: "flux-data"
                 masters:
                   refresh-on-reload: true
+                  auto-update: false
+                  auto-update-interval-minutes: 30
                 """);
         Files.writeString(dir.resolve("messages.yml"), """
                 prefix: "<gray>Flux</gray>"
