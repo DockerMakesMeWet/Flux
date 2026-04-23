@@ -58,7 +58,8 @@ public final class ModerationListener {
             return;
         }
 
-        punishmentService.activeMute(player.getUniqueId().toString(), player.getUsername()).ifPresent(mute -> {
+        String chatIp = NetworkUtil.extractIp(player);
+        punishmentService.activeMute(player.getUniqueId().toString(), player.getUsername(), chatIp).ifPresent(mute -> {
             event.setResult(PlayerChatEvent.ChatResult.denied());
             player.sendMessage(messageService.mutedMessage(mute));
         });
@@ -89,7 +90,8 @@ public final class ModerationListener {
             return;
         }
 
-        punishmentService.activeMute(player.getUniqueId().toString(), player.getUsername()).ifPresent(mute -> {
+        String commandIp = NetworkUtil.extractIp(player);
+        punishmentService.activeMute(player.getUniqueId().toString(), player.getUsername(), commandIp).ifPresent(mute -> {
             event.setResult(CommandExecuteEvent.CommandResult.denied());
             player.sendMessage(messageService.mutedMessage(mute));
         });

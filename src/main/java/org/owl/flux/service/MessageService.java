@@ -103,6 +103,10 @@ public final class MessageService {
         return safeText(messages.commands.usageIpBan);
     }
 
+    public String usageIpMute() {
+        return safeText(messages.commands.usageIpMute);
+    }
+
     public String usageUnban() {
         return safeText(messages.commands.usageUnban);
     }
@@ -346,8 +350,17 @@ public final class MessageService {
         send(source, messages.commands.altsHeader, Map.of("ip", safeText(ip)));
     }
 
-    public void sendAltsEntry(CommandSource source, String username) {
-        send(source, messages.commands.altsEntry, Map.of("username", safeText(username)));
+    public void sendAltsEntry(CommandSource source, String username, String status) {
+        String template = switch (status) {
+            case "banned" -> messages.commands.altsEntryBanned;
+            case "muted"  -> messages.commands.altsEntryMuted;
+            default       -> messages.commands.altsEntry;
+        };
+        send(source, template, Map.of("username", safeText(username)));
+    }
+
+    public void sendAltsLegend(CommandSource source) {
+        send(source, messages.commands.altsLegend, Map.of());
     }
 
     public void sendIpHistoryHeader(CommandSource source, String target) {

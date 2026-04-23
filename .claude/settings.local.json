@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn test *)",
+      "Bash(./mvnw test *)",
+      "Bash(./gradlew test *)"
+    ]
+  }
+}

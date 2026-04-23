@@ -62,7 +62,8 @@ public final class TemplateService {
             tier.reason,
             templateName,
             offenseStep,
-            OrdinalFormatter.offenseLabel(offenseStep)
+            OrdinalFormatter.offenseLabel(offenseStep),
+            definition.ipPunishment
         );
     }
 

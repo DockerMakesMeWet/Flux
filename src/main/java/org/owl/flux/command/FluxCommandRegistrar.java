@@ -21,6 +21,7 @@ import org.owl.flux.data.model.AccountVisit;
 import org.owl.flux.data.model.IpVisit;
 import org.owl.flux.data.model.ModerationActionRecord;
 import org.owl.flux.data.model.ModerationActionType;
+import org.owl.flux.data.model.PlayerSnapshot;
 import org.owl.flux.data.model.PunishmentRecord;
 import org.owl.flux.data.model.PunishmentType;
 import org.owl.flux.data.repository.PlayerRepository;
@@ -110,6 +111,7 @@ public final class FluxCommandRegistrar {
         register("warn", "flux.command.warn", this::runWarnLike, this::suggestWarnLike);
         register("kick", "flux.command.kick", this::runKickLike, this::suggestKickLike);
         register("ipban", "flux.command.ipban", this::runIpBan, this::suggestIpBan, "banip");
+        register("ipmute", "flux.command.ipmute", this::runIpMute, this::suggestIpMute, "muteip");
         register("unban", "flux.command.unban", this::runUnban, this::suggestUnban, "pardon");
         register("unmute", "flux.command.unmute", this::runUnmute, this::suggestUnmute);
         register("void", "flux.command.void", this::runVoid, this::suggestVoid);
@@ -234,6 +236,8 @@ public final class FluxCommandRegistrar {
         String templateName = null;
         Integer templateOffenseStep = null;
         String templateOffenseLabel = null;
+        boolean ipPunishment = false;
+        String ipOverride = null;
 
         if (reason.startsWith("#")) {
             try {
@@ -251,6 +255,10 @@ public final class FluxCommandRegistrar {
                 templateName = resolution.templateName();
                 templateOffenseStep = resolution.offenseStep();
                 templateOffenseLabel = resolution.offenseLabel();
+                if (resolution.ipPunishment()) {
+                    ipPunishment = true;
+                    ipOverride = target.ip();
+                }
             } catch (IllegalArgumentException exception) {
                 if ("template:no-permission".equals(exception.getMessage())) {
                     messageService.sendNoPermission(invocation.source());
@@ -270,8 +278,8 @@ public final class FluxCommandRegistrar {
                 templateName,
                 templateOffenseStep,
                 templateOffenseLabel,
-                null,
-                false
+                ipOverride,
+                ipPunishment
         ));
 
         String executorName = invocation.source() instanceof Player player ? player.getUsername() : "Console";
@@ -334,6 +342,64 @@ public final class FluxCommandRegistrar {
 
         String executorName = invocation.source() instanceof Player player ? player.getUsername() : "Console";
         messageService.sendActionCreated(invocation.source(), "IPBAN", targetName, result.punishment().id());
+        messageService.sendPunishmentSummaryHeader(invocation.source(), result.punishment().id());
+        sendPunishmentDetail(invocation.source(), result.punishment());
+        messageService.sendPunishmentSummaryFooter(invocation.source(), result.punishment().id());
+        messageService.broadcastStaffAction(result.punishment(), executorName, targetName, onlinePlayer);
+    }
+
+    private void runIpMute(SimpleCommand.Invocation invocation) {
+        String[] args = invocation.arguments();
+        if (args.length < 2) {
+            messageService.sendUsage(invocation.source(), messageService.usageIpMute());
+            return;
+        }
+
+        String targetArg = args[0];
+        String resolvedIp = null;
+        String targetName = targetArg;
+        String targetUuid = null;
+        Player onlinePlayer = null;
+
+        if (NetworkUtil.isIpLiteral(targetArg)) {
+            resolvedIp = targetArg;
+        } else {
+            Optional<TargetProfile> targetMaybe = targetResolver.resolvePlayer(targetArg);
+            if (targetMaybe.isEmpty()) {
+                messageService.sendPlayerNotFound(invocation.source(), targetArg);
+                return;
+            }
+            TargetProfile target = targetMaybe.get();
+            if (!hierarchyService.canTarget(invocation.source(), target)) {
+                messageService.sendTargetProtected(invocation.source());
+                return;
+            }
+            resolvedIp = target.ip();
+            targetName = target.username();
+            targetUuid = target.uuid();
+            onlinePlayer = target.optionalOnlinePlayer().orElse(null);
+        }
+
+        ParseResult parseResult = parsePunishmentPayload(Arrays.copyOfRange(args, 1, args.length), true);
+        if (parseResult == null || parseResult.reason().isBlank()) {
+            messageService.sendUsage(invocation.source(), messageService.usageIpMute());
+            return;
+        }
+
+        TargetProfile target = new TargetProfile(targetUuid, targetName, resolvedIp, onlinePlayer);
+        PunishmentResult result = punishmentService.create(new PunishmentRequest(
+                invocation.source(),
+                target,
+                PunishmentType.MUTE,
+                parseResult.duration(),
+                parseResult.reason(),
+                null,
+                resolvedIp,
+                true
+        ));
+
+        String executorName = invocation.source() instanceof Player player ? player.getUsername() : "Console";
+        messageService.sendActionCreated(invocation.source(), "IPMUTE", targetName, result.punishment().id());
         messageService.sendPunishmentSummaryHeader(invocation.source(), result.punishment().id());
         sendPunishmentDetail(invocation.source(), result.punishment());
         messageService.sendPunishmentSummaryFooter(invocation.source(), result.punishment().id());
@@ -442,7 +508,16 @@ public final class FluxCommandRegistrar {
         String relatedPunishmentId = null;
 
         boolean resolvedById = false;
-        if (looksLikePunishmentIdToken(input)) {
+        boolean resolvedByIp = false;
+
+        if (NetworkUtil.isIpLiteral(input)) {
+            Optional<PunishmentRecord> activeMuteRecord = punishmentService.activeMuteByIp(input);
+            changed = punishmentService.unmuteByIp(input);
+            unmutedRecord = activeMuteRecord;
+            relatedPunishmentId = activeMuteRecord.map(PunishmentRecord::id).orElse(null);
+            auditTargetReference = input;
+            resolvedByIp = true;
+        } else if (looksLikePunishmentIdToken(input)) {
             String id = input.toUpperCase(Locale.ROOT);
             Optional<PunishmentRecord> recordById = punishmentService.findById(id);
             if (recordById.isPresent() && recordById.get().type() == PunishmentType.MUTE) {
@@ -453,22 +528,18 @@ public final class FluxCommandRegistrar {
                 unmutedRecord = Optional.of(record);
                 relatedPunishmentId = id;
                 resolvedById = true;
-            } else {
-                changed = false;
             }
-        } else {
-            changed = false;
         }
 
-        if (!resolvedById) {
+        if (!resolvedById && !resolvedByIp) {
             Optional<TargetProfile> targetMaybe = targetResolver.resolvePunishmentTarget(input);
             if (targetMaybe.isEmpty()) {
                 messageService.sendPlayerNotFound(invocation.source(), input);
                 return;
             }
             TargetProfile target = targetMaybe.get();
-            Optional<PunishmentRecord> activeMute = punishmentService.activeMute(target.uuid(), target.username());
-            unmutedRecord = activeMute == null ? Optional.empty() : activeMute;
+            Optional<PunishmentRecord> activeMute = punishmentService.activeMute(target.uuid(), target.username(), target.ip());
+            unmutedRecord = activeMute;
             changed = punishmentService.unmuteByTarget(target.uuid(), target.username());
             targetDisplay = target.username();
             auditTargetReference = target.username();
@@ -481,12 +552,12 @@ public final class FluxCommandRegistrar {
         }
         punishmentService.auditReversalAction(
                 ModerationActionType.UNMUTE,
-            auditTargetReference,
+                auditTargetReference,
                 relatedPunishmentId,
                 invocation.source(),
                 reason
         );
-            punishmentService.sendUnmuteWebhook(targetDisplay, invocation.source(), reason, unmutedRecord.orElse(null));
+        punishmentService.sendUnmuteWebhook(targetDisplay, invocation.source(), reason, unmutedRecord.orElse(null));
         unmutedRecord.ifPresent(punishmentService::notifyPlayerUnmuted);
         messageService.sendActionUpdated(invocation.source(), targetDisplay);
     }
@@ -908,10 +979,10 @@ public final class FluxCommandRegistrar {
             return;
         }
 
-        List<String> usernames = playerRepository.findUsernamesByIp(target.ip());
-        PageWindow window = paginationWindow(usernames.size(), requestedPage);
+        List<PlayerSnapshot> altsPlayers = playerRepository.findPlayersByIp(target.ip());
+        PageWindow window = paginationWindow(altsPlayers.size(), requestedPage);
         messageService.sendAltsHeader(invocation.source(), target.ip());
-        if (usernames.isEmpty()) {
+        if (altsPlayers.isEmpty()) {
             messageService.sendActionNotFound(invocation.source());
             messageService.sendPaginationFooter(
                     invocation.source(),
@@ -921,9 +992,13 @@ public final class FluxCommandRegistrar {
             );
             return;
         }
-        for (String username : usernames.subList(window.fromIndex(), window.toIndex())) {
-            messageService.sendAltsEntry(invocation.source(), username);
+        for (PlayerSnapshot snapshot : altsPlayers.subList(window.fromIndex(), window.toIndex())) {
+            boolean banned = punishmentService.activeBan(snapshot.uuid(), snapshot.username(), snapshot.lastIp()).isPresent();
+            boolean muted = !banned && punishmentService.activeMute(snapshot.uuid(), snapshot.username(), snapshot.lastIp()).isPresent();
+            String status = banned ? "banned" : (muted ? "muted" : "clean");
+            messageService.sendAltsEntry(invocation.source(), snapshot.username(), status);
         }
+        messageService.sendAltsLegend(invocation.source());
         messageService.sendPaginationFooter(
                 invocation.source(),
                 window.currentPage(),
@@ -1070,6 +1145,10 @@ public final class FluxCommandRegistrar {
         return suggestPunishmentCommand(invocation, true, true, PunishmentType.BAN);
     }
 
+    private List<String> suggestIpMute(SimpleCommand.Invocation invocation) {
+        return suggestPunishmentCommand(invocation, true, true, PunishmentType.MUTE);
+    }
+
     private List<String> suggestUnban(SimpleCommand.Invocation invocation) {
         if (invocation.arguments().length > 2) {
             return List.of();
@@ -1091,7 +1170,7 @@ public final class FluxCommandRegistrar {
             return List.of();
         }
         return argumentPositionCompletionFramework(invocation, mergeCompletionSources(
-                onlineUsernameCompletionSource(0),
+                usernameOrIpTargetCompletionSource(0),
                 punishmentIdCompletionSource(PunishmentType.MUTE, 0)
         ));
     }

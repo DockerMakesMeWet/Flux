@@ -10,7 +10,8 @@ public record TemplateResolution(
         String reason,
         String templateName,
         int offenseStep,
-        String offenseLabel
+        String offenseLabel,
+        boolean ipPunishment
 ) {
     public Optional<Duration> optionalDuration() {
         return Optional.ofNullable(duration);

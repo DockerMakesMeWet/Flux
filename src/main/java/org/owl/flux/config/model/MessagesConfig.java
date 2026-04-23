@@ -94,11 +94,14 @@ public final class MessagesConfig {
         @Setting("usage-ipban")
         public String usageIpBan = "/ipban <user/ip> [duration] <reason/#template>";
 
+        @Setting("usage-ipmute")
+        public String usageIpMute = "/ipmute <user/ip> [duration] <reason/#template>";
+
         @Setting("usage-unban")
         public String usageUnban = "/unban <user/ip/id> <reason>";
 
         @Setting("usage-unmute")
-        public String usageUnmute = "/unmute <user/id> <reason>";
+        public String usageUnmute = "/unmute <user/ip/id> <reason>";
 
         @Setting("usage-void")
         public String usageVoid = "/void <id> <reason>";
@@ -246,6 +249,15 @@ public final class MessagesConfig {
 
         @Setting("alts-entry")
         public String altsEntry = "<gray>•</gray> <white><username></white>";
+
+        @Setting("alts-entry-banned")
+        public String altsEntryBanned = "<gray>•</gray> <red><username></red> <dark_gray>(banned)</dark_gray>";
+
+        @Setting("alts-entry-muted")
+        public String altsEntryMuted = "<gray>•</gray> <yellow><username></yellow> <dark_gray>(muted)</dark_gray>";
+
+        @Setting("alts-legend")
+        public String altsLegend = "<gray>Key: <red>Red</red> = banned  <yellow>Yellow</yellow> = muted  <white>White</white> = clean</gray>";
 
         @Setting("iphistory-account-entry")
         public String ipHistoryAccountEntry = "<gray>-</gray> <white><account></white> <dark_gray>(<seen>)</dark_gray>";

@@ -90,8 +90,9 @@ commands:
   usage-warn: "/warn <user> <reason/#template>"
   usage-kick: "/kick <user> <reason/#template>"
   usage-ipban: "/ipban <user/ip> [duration] <reason/#template>"
+  usage-ipmute: "/ipmute <user/ip> [duration] <reason/#template>"
   usage-unban: "/unban <user/ip/id> <reason>"
-  usage-unmute: "/unmute <user/id> <reason>"
+  usage-unmute: "/unmute <user/ip/id> <reason>"
   usage-void: "/void <id> <reason>"
   usage-voidall: "/voidall <user/ip> <reason>"
   usage-history: "/history <user/ip> [page]"
@@ -203,6 +204,9 @@ commands:
   # Entry line for alternate-account output.
   # Placeholders: <username>
   alts-entry: "<gray>•</gray> <white><username></white>"
+  alts-entry-banned: "<gray>•</gray> <red><username></red> <dark_gray>(banned)</dark_gray>"
+  alts-entry-muted: "<gray>•</gray> <yellow><username></yellow> <dark_gray>(muted)</dark_gray>"
+  alts-legend: "<gray>Key: <red>Red</red> = banned  <yellow>Yellow</yellow> = muted  <white>White</white> = clean</gray>"
 
   # Entry line for account listing when querying /iphistory by IP literal.
   # Placeholders: <account> <seen>

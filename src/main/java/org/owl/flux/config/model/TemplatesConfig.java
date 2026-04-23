@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import org.spongepowered.configurate.objectmapping.ConfigSerializable;
+import org.spongepowered.configurate.objectmapping.meta.Setting;
 
 @ConfigSerializable
 public final class TemplatesConfig {
@@ -17,6 +18,8 @@ public final class TemplatesConfig {
         public String permission = "";
         public String type = "";
         public String notes = "";
+        @Setting("ip-punishment")
+        public boolean ipPunishment = false;
         public List<TemplateTier> tiers = new ArrayList<>();
     }
 

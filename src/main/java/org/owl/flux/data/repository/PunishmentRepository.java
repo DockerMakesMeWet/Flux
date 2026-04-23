@@ -508,6 +508,59 @@ public final class PunishmentRepository {
         }
     }
 
+    public boolean voidSupersededMuteByIp(String targetIp, String voidReason, String excludedPunishmentId) {
+        expireEndedPunishments();
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                     """
+                             UPDATE punishments
+                             SET active = FALSE,
+                                 voided = TRUE,
+                                 void_reason = ?
+                             WHERE target_ip = ?
+                               AND type = 'MUTE'
+                               AND active = TRUE
+                               AND voided = FALSE
+                               AND (? IS NULL OR id <> ?)
+                             """)) {
+            statement.setString(1, normalizeOptionalText(voidReason));
+            statement.setString(2, targetIp);
+            statement.setString(3, normalizeOptionalText(excludedPunishmentId));
+            statement.setString(4, normalizeOptionalText(excludedPunishmentId));
+            return statement.executeUpdate() > 0;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Failed to void superseded IP mutes.", exception);
+        }
+    }
+
+    public boolean deactivateActiveMuteByIp(String targetIp) {
+        return deactivateActiveMuteByIpWithReason(targetIp, null, null);
+    }
+
+    public boolean deactivateActiveMuteByIpWithReason(String targetIp, String reason, String excludedPunishmentId) {
+        expireEndedPunishments();
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                     """
+                             UPDATE punishments
+                             SET active = FALSE,
+                                 void_reason = COALESCE(?, void_reason)
+                             WHERE target_ip = ?
+                               AND type = 'MUTE'
+                               AND active = TRUE
+                               AND voided = FALSE
+                               AND (? IS NULL OR id <> ?)
+                             """)) {
+            statement.setString(1, normalizeOptionalText(reason));
+            statement.setString(2, targetIp);
+            statement.setString(3, normalizeOptionalText(excludedPunishmentId));
+            statement.setString(4, normalizeOptionalText(excludedPunishmentId));
+            return statement.executeUpdate() > 0;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Failed to deactivate active IP mutes.", exception);
+        }
+    }
+
     public boolean voidById(String id, String voidReason) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(
@@ -689,7 +742,12 @@ public final class PunishmentRepository {
         if (record.targetIp() == null || !record.targetIp().equals(targetIp)) {
             return false;
         }
-        return isIpPunishment(record);
+        if (!isIpPunishment(record)) {
+            return false;
+        }
+        // Only pure IP punishments (no UUID target) block every account from that IP.
+        // Account-targeted IP punishments enforce by UUID/username only.
+        return record.targetUuid() == null || record.targetUuid().isBlank();
     }
 
     private static boolean isIpPunishment(PunishmentRecord record) {

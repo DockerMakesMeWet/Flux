@@ -2,6 +2,7 @@ package org.owl.flux.listener;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -50,6 +51,7 @@ class ModerationListenerTest {
         UUID uuid = UUID.fromString("00000000-0000-0000-0000-000000000777");
         when(player.getUniqueId()).thenReturn(uuid);
         when(player.getUsername()).thenReturn("MutedUser");
+        when(player.getRemoteAddress()).thenReturn(new InetSocketAddress("198.51.100.99", 25565));
         when(mastersService.isMaster("MutedUser")).thenReturn(false);
         when(permissionService.has(player, "flux.bypass.mute")).thenReturn(false);
 
@@ -75,7 +77,7 @@ class ModerationListenerTest {
                 false,
                 Map.of()
         );
-        when(punishmentService.activeMute(uuid.toString(), "MutedUser")).thenReturn(Optional.of(mute), Optional.of(mute));
+        when(punishmentService.activeMute(eq(uuid.toString()), eq("MutedUser"), any())).thenReturn(Optional.of(mute), Optional.of(mute));
 
         Component mutedMessage = Component.text("muted");
         when(messageService.mutedMessage(mute)).thenReturn(mutedMessage);
@@ -83,7 +85,7 @@ class ModerationListenerTest {
         listener.onChat(event);
         listener.onChat(event);
 
-        verify(punishmentService, times(2)).activeMute(uuid.toString(), "MutedUser");
+        verify(punishmentService, times(2)).activeMute(eq(uuid.toString()), eq("MutedUser"), any());
         verify(messageService, times(2)).mutedMessage(mute);
         verify(event, times(2)).setResult(any(PlayerChatEvent.ChatResult.class));
         verify(player, times(2)).sendMessage(mutedMessage);
@@ -108,9 +110,10 @@ class ModerationListenerTest {
         UUID uuid = UUID.fromString("00000000-0000-0000-0000-000000000778");
         when(player.getUniqueId()).thenReturn(uuid);
         when(player.getUsername()).thenReturn("RegularUser");
+        when(player.getRemoteAddress()).thenReturn(new InetSocketAddress("198.51.100.100", 25565));
         when(mastersService.isMaster("RegularUser")).thenReturn(false);
         when(permissionService.has(player, "flux.bypass.mute")).thenReturn(false);
-        when(punishmentService.activeMute(uuid.toString(), "RegularUser")).thenReturn(Optional.empty());
+        when(punishmentService.activeMute(eq(uuid.toString()), eq("RegularUser"), any())).thenReturn(Optional.empty());
 
         PlayerChatEvent event = mock(PlayerChatEvent.class);
         PlayerChatEvent.ChatResult allowed = mock(PlayerChatEvent.ChatResult.class);
@@ -144,6 +147,7 @@ class ModerationListenerTest {
         UUID uuid = UUID.fromString("00000000-0000-0000-0000-000000000779");
         when(player.getUniqueId()).thenReturn(uuid);
         when(player.getUsername()).thenReturn("MutedUser");
+        when(player.getRemoteAddress()).thenReturn(new InetSocketAddress("198.51.100.101", 25565));
         when(mastersService.isMaster("MutedUser")).thenReturn(false);
         when(permissionService.has(player, "flux.bypass.mute")).thenReturn(false);
 
@@ -163,7 +167,7 @@ class ModerationListenerTest {
                 false,
                 Map.of()
         );
-        when(punishmentService.activeMute(uuid.toString(), "MutedUser")).thenReturn(Optional.of(mute));
+        when(punishmentService.activeMute(eq(uuid.toString()), eq("MutedUser"), any())).thenReturn(Optional.of(mute));
 
         Component mutedMessage = Component.text("muted");
         when(messageService.mutedMessage(mute)).thenReturn(mutedMessage);
@@ -206,7 +210,7 @@ class ModerationListenerTest {
 
                 listener.onChat(event);
 
-                verify(punishmentService, never()).activeMute(any(), any());
+                verify(punishmentService, never()).activeMute(any(), any(), any());
                 verify(event, never()).setResult(any(PlayerChatEvent.ChatResult.class));
                 verify(messageService, never()).mutedMessage(any(PunishmentRecord.class));
         }
@@ -237,7 +241,7 @@ class ModerationListenerTest {
 
                 listener.onCommandExecute(event);
 
-                verify(punishmentService, never()).activeMute(any(), any());
+                verify(punishmentService, never()).activeMute(any(), any(), any());
                 verify(event, never()).setResult(any(CommandExecuteEvent.CommandResult.class));
                 verify(messageService, never()).mutedMessage(any(PunishmentRecord.class));
                 verify(player, never()).sendMessage(any(Component.class));
@@ -264,7 +268,7 @@ class ModerationListenerTest {
         when(player.getUsername()).thenReturn("MutedUser");
         when(mastersService.isMaster("MutedUser")).thenReturn(false);
         when(permissionService.has(player, "flux.bypass.mute")).thenReturn(false);
-        when(punishmentService.activeMute(uuid.toString(), "MutedUser")).thenReturn(Optional.of(mock(PunishmentRecord.class)));
+        when(punishmentService.activeMute(eq(uuid.toString()), eq("MutedUser"), any())).thenReturn(Optional.of(mock(PunishmentRecord.class)));
 
         CommandExecuteEvent event = mock(CommandExecuteEvent.class);
         when(event.getResult()).thenReturn(CommandExecuteEvent.CommandResult.allowed());

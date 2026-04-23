@@ -176,7 +176,7 @@ class FluxCommandRegistrarWebhookTest {
 
         PunishmentService punishmentService = mock(PunishmentService.class);
         PunishmentRecord activeMute = punishment("MU9011", PunishmentType.MUTE, "NeverSeen", Map.of());
-        when(punishmentService.activeMute(null, "NeverSeen")).thenReturn(Optional.of(activeMute));
+        when(punishmentService.activeMute(null, "NeverSeen", null)).thenReturn(Optional.of(activeMute));
         when(punishmentService.unmuteByTarget(null, "NeverSeen")).thenReturn(true);
 
         FluxCommandRegistrar registrar = registrar(targetResolver, punishmentService);

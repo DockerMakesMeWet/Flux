@@ -332,6 +332,7 @@ templates:
     category: "Blacklist / Zero Tolerance"
     permission: "flux.template.duping-economy"
     type: "BAN"
+    ip-punishment: true
     tiers:
       - duration: "permanent"
         reason: "Duping / Economy"
@@ -341,6 +342,7 @@ templates:
     category: "Blacklist / Zero Tolerance"
     permission: "flux.template.server-harm"
     type: "BAN"
+    ip-punishment: true
     tiers:
       - duration: "permanent"
         reason: "Lag Machines"
@@ -350,6 +352,7 @@ templates:
     category: "Blacklist / Zero Tolerance"
     permission: "flux.template.safety-threat"
     type: "BAN"
+    ip-punishment: true
     tiers:
       - duration: "permanent"
         reason: "Doxxing / Threats"
@@ -359,6 +362,7 @@ templates:
     category: "Blacklist / Zero Tolerance"
     permission: "flux.template.botting"
     type: "BAN"
+    ip-punishment: true
     tiers:
       - duration: "permanent"
         reason: "Botting"

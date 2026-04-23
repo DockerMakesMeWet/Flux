@@ -96,6 +96,30 @@ public final class PlayerRepository {
         }
     }
 
+    public List<PlayerSnapshot> findPlayersByIp(String ip) {
+        List<PlayerSnapshot> players = new ArrayList<>();
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                     "SELECT uuid, username, last_ip FROM players WHERE last_ip = ?")) {
+            statement.setString(1, ip);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    String username = resultSet.getString("username");
+                    if (username != null && !username.isBlank()) {
+                        players.add(new PlayerSnapshot(
+                                resultSet.getString("uuid"),
+                                username,
+                                resultSet.getString("last_ip")
+                        ));
+                    }
+                }
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Failed to query players by IP.", exception);
+        }
+        return players;
+    }
+
     public List<String> findUsernamesByIp(String ip) {
         Set<String> usernames = new LinkedHashSet<>();
         try (Connection connection = dataSource.getConnection();

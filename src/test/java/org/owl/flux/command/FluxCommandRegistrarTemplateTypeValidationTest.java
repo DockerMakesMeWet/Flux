@@ -48,7 +48,7 @@ class FluxCommandRegistrarTemplateTypeValidationTest {
         when(targetResolver.resolvePunishmentTarget("TargetUser")).thenReturn(Optional.of(target));
         when(hierarchyService.canTarget(eq(source), any(TargetProfile.class))).thenReturn(true);
         when(templateService.resolve(source, "#chatmute", "uuid-1")).thenReturn(
-                new TemplateResolution(PunishmentType.MUTE, Duration.ofMinutes(30), "spam", "chatmute", 1, "1st offense")
+                new TemplateResolution(PunishmentType.MUTE, Duration.ofMinutes(30), "spam", "chatmute", 1, "1st offense", false)
         );
 
         invoke(registrar, "runWarnLike", invocation(source, "TargetUser", "#chatmute"));
@@ -71,7 +71,7 @@ class FluxCommandRegistrarTemplateTypeValidationTest {
         when(targetResolver.resolvePunishmentTarget("TargetUser")).thenReturn(Optional.of(target));
         when(hierarchyService.canTarget(eq(source), any(TargetProfile.class))).thenReturn(true);
         when(templateService.resolve(source, "#chatmute", "uuid-1")).thenReturn(
-                new TemplateResolution(PunishmentType.MUTE, Duration.ofMinutes(30), "spam", "chatmute", 2, "2nd offense")
+                new TemplateResolution(PunishmentType.MUTE, Duration.ofMinutes(30), "spam", "chatmute", 2, "2nd offense", false)
         );
 
         PunishmentRecord record = new PunishmentRecord(

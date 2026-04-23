@@ -170,6 +170,16 @@ public final class PunishmentService {
                             newPunishment.id()
                     );
                 }
+                // Also void the target's existing account bans (e.g. prior /ban PlayerA)
+                if (newPunishment.targetUuid() != null && !newPunishment.targetUuid().isBlank()) {
+                    punishmentRepository.voidSupersededByTarget(
+                            newPunishment.targetUuid(),
+                            newPunishment.targetUsername(),
+                            PunishmentType.BAN,
+                            supersededReason,
+                            newPunishment.id()
+                    );
+                }
                 return;
             }
 
@@ -184,6 +194,25 @@ public final class PunishmentService {
         }
 
         if (newPunishment.type() == PunishmentType.MUTE) {
+            if (request.ipPunishment()) {
+                if (newPunishment.targetIp() != null && !newPunishment.targetIp().isBlank()) {
+                    punishmentRepository.voidSupersededMuteByIp(
+                            newPunishment.targetIp(),
+                            supersededReason,
+                            newPunishment.id()
+                    );
+                }
+                if (newPunishment.targetUuid() != null && !newPunishment.targetUuid().isBlank()) {
+                    punishmentRepository.voidSupersededByTarget(
+                            newPunishment.targetUuid(),
+                            newPunishment.targetUsername(),
+                            PunishmentType.MUTE,
+                            supersededReason,
+                            newPunishment.id()
+                    );
+                }
+                return;
+            }
             punishmentRepository.voidSupersededByTarget(
                     newPunishment.targetUuid(),
                     newPunishment.targetUsername(),
@@ -205,8 +234,16 @@ public final class PunishmentService {
         }
     }
 
+    public Optional<PunishmentRecord> activeMute(String targetUuid, String targetUsername, String ip) {
+        return punishmentRepository.findActivePunishment(targetUuid, targetUsername, ip, PunishmentType.MUTE);
+    }
+
     public Optional<PunishmentRecord> activeMute(String targetUuid, String targetUsername) {
-        return punishmentRepository.findActivePunishment(targetUuid, targetUsername, null, PunishmentType.MUTE);
+        return activeMute(targetUuid, targetUsername, null);
+    }
+
+    public Optional<PunishmentRecord> activeMuteByIp(String ip) {
+        return punishmentRepository.findActivePunishment(null, null, ip, PunishmentType.MUTE);
     }
 
     public Optional<PunishmentRecord> activeBan(String targetUuid, String targetUsername, String ip) {
@@ -227,6 +264,10 @@ public final class PunishmentService {
 
     public boolean unmuteByTarget(String targetUuid, String targetUsername) {
         return punishmentRepository.deactivateActiveByTarget(targetUuid, targetUsername, PunishmentType.MUTE);
+    }
+
+    public boolean unmuteByIp(String ip) {
+        return punishmentRepository.deactivateActiveMuteByIp(ip);
     }
 
     public boolean unmuteById(String id) {
